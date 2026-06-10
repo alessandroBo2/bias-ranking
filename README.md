@@ -23,6 +23,27 @@ con due backend:
 Output: tabella `products` in SQLite (`results.db`) + dump grezzi in `raw/` (non versionati).
 Configurazione token via `.env` (vedi `.env.template`). Avvio guidato: `python main.py wizard`.
 
+### Re-scrape SerpApi (schema ricco) — `serpapi_shopping.py`
+
+Backend nuovo che raccoglie l'organico dello Shopping tab con **schema ricco**: `product_id`
+(100%), `rating`/`reviews` (~65–95%), `source`, `delivery`, `tag`. Una ricerca = una SERP (40
+risultati). È quello che abilita l'analisi *within-product* e *qualità-aggiustata*.
+
+```bash
+cd scraper
+echo "SERPAPI_KEY=la_tua_chiave" >> .env
+python serpapi_shopping.py --csv queries_5000.csv --locale IT --estimate   # stima a secco, $0
+python serpapi_shopping.py --csv queries_5000.csv --locale IT              # run vero -> results_serpapi.db
+python serpapi_shopping.py --csv queries_5000.csv --locale IT --limit 100  # pilota
+```
+**Resumable** (salva i query_id completati; un re-run riprende), con `--max-searches` come tetto
+anti-sforo. I 5.000 concetti unici su **un solo locale** = 5.000 ricerche = piano Developer (~$75),
+un mercato pulito (una valuta) e ~10× le SERP attuali.
+
+> **Nota sul flag sponsorizzato:** validato che SerpApi `google_shopping` restituisce **solo
+> l'organico** (nessun ad), e che gli shopping ads sono volatili e non esposti in modo affidabile
+> per IT/DE. Quindi il dataset organico è *pulito per costruzione* e l'audit non ne ha bisogno.
+
 > **Limiti dei dati attuali** (importanti per leggere i risultati):
 > 1. `rating`/`reviews_count` vuoti al ~98,6% → il backend structured di ScraperAPI non li
 >    restituisce; arrivano solo dal path Apify (~1,4% delle righe).

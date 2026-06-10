@@ -1,0 +1,39 @@
+# Secrets
+.env
+*.env
+!*.env.template
+
+# Dati grezzi e DB (non versionati: pesanti e/o con possibili chiavi nei link)
+raw/
+*.db
+*.db-wal
+*.db-shm
+*.parquet
+*.jsonl
+
+# Modelli / bundle
+minilm_it/
+*.zip
+
+# Ambienti virtuali
+bias/
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# Output generati a runtime (tranne le figure di esempio committate a mano)
+bias_summary_*.csv
+nb_*.png
+!analysis/figures/*.png
+
+# OS / editor
+.DS_Store
+*.Identifier
+.idea/
+.vscode/

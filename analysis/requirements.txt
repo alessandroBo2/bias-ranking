@@ -1,0 +1,13 @@
+lightgbm
+shap
+scikit-learn
+pandas
+numpy
+matplotlib
+jupyter
+ipykernel
+# encoder semantico (scegli uno):
+#   - sentence-transformers  (MiniLM pieno; richiede torch)
+#   - model2vec              (statico, niente torch, CPU)
+sentence-transformers
+model2vec

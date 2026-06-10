@@ -90,13 +90,23 @@ def report_shopping(title: str, r: dict) -> None:
 
 
 def inspect_google(g: dict) -> dict:
-    """Cerca gli ADS nell'engine 'google': PLA (shopping_results/immersive_products) + text ads."""
+    """Cerca gli ADS nell'engine 'google' e verifica se gli item sono DAVVERO sponsorizzati."""
     blocks = {k: len(g.get(k) or []) for k in
               ["shopping_results", "immersive_products", "ads", "product_results"]}
-    # chiavi top-level che 'sanno' di ads/shopping/product
     relevant = [k for k in g.keys()
                 if any(s in k.lower() for s in ("shopping", "ads", "product", "immersive"))]
-    return {"blocks": blocks, "relevant_keys": relevant, "all_keys": list(g.keys())}
+    # cerca marker sponsorizzati DENTRO gli item, e raccogli le chiavi di un item campione
+    pool = (g.get("immersive_products") or []) + (g.get("shopping_results") or []) + (g.get("ads") or [])
+    marked = 0; sample_keys = []
+    for it in pool:
+        if isinstance(it, dict):
+            if not sample_keys:
+                sample_keys = sorted(it.keys())
+            blob = json.dumps(it, ensure_ascii=False).lower()
+            if any(m in blob for m in SPONSORED_MARKERS):
+                marked += 1
+    return {"blocks": blocks, "relevant_keys": relevant,
+            "marked_sponsored": marked, "sample_item_keys": sample_keys}
 
 
 def main():
@@ -137,8 +147,9 @@ def main():
                     b = gi["blocks"]
                     print(f"    [google +location] shopping_results={b['shopping_results']} "
                           f"immersive_products={b['immersive_products']} ads(text)={b['ads']}")
-                    print(f"      chiavi rilevanti: {gi['relevant_keys']}")
-                    spons |= (b["shopping_results"] + b["immersive_products"] + b["ads"]) > 0
+                    print(f"      marker 'Sponsored' negli item: {gi['marked_sponsored']} | "
+                          f"chiavi item: {gi['sample_item_keys'][:14]}")
+                    spons |= gi["marked_sponsored"] > 0   # solo marker REALE, non semplice presenza
                 except Exception as e:
                     print(f"    [google] errore: {type(e).__name__}: {e}")
         verdict[loc] = {"sponsored": spons, "product_id": pid, "rating": rat}

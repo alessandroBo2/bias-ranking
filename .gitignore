@@ -37,3 +37,6 @@ nb_*.png
 *.Identifier
 .idea/
 .vscode/
+
+# Campioni di validazione SerpApi (runtime)
+validation_samples/

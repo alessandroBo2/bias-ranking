@@ -83,5 +83,15 @@ Figure in `analysis/figures/`.
 2. **Flag sponsorizzato** — la variabile mancante più importante. Richiede uno scraper SERP che
    catturi il blocco *shopping ads* (es. SerpApi `google_shopping`: espone `tag`/`badge` e
    `inline_shopping_results`, oltre a `product_id` e rating). Prima si valida a costo zero sul free
-   plan, poi un solo re-scrape raccoglie organico + sponsorizzato + rating + product_id insieme.
+   plan con `analysis/validate_serpapi.py`, poi un solo re-scrape raccoglie organico + sponsorizzato
+   + rating + product_id insieme.
+
+   ```bash
+   cd analysis
+   # metti SERPAPI_KEY=... in .env (free plan), poi:
+   python validate_serpapi.py                 # IT + DE, 3 keyword each
+   python validate_serpapi.py --with-search   # controlla anche il blocco ads dell'engine 'google'
+   ```
+   Stampa la copertura di sponsorizzato/product_id/rating per locale e salva i grezzi in
+   `validation_samples/` per ispezione.
 3. Rating "qualità-aggiustata" e disegno quasi-sperimentale (un solo locale, stesse keyword nel tempo).

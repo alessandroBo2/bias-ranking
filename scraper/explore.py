@@ -1,13 +1,13 @@
 """
-explore.py — Esplora results.db via terminale (zero deps extra).
+explore.py — Explore results.db from the terminal (zero extra deps).
 
-Uso:
-    python main.py explore                  # panoramica completa
-    python main.py explore --lang IT        # filtra per lingua
+Usage:
+    python main.py explore                  # full overview
+    python main.py explore --lang IT        # filter by language
     python main.py explore --cat "Electronics"
-    python main.py explore --keyword "mountain bike economici"
-    python main.py explore --runs           # lista run Apify
-    python main.py explore --sample 20      # campione prodotti
+    python main.py explore --keyword "cheap mountain bikes"
+    python main.py explore --runs           # list Apify runs
+    python main.py explore --sample 20      # product sample
 """
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ DB_PATH = Path("results.db")
 
 def _connect() -> sqlite3.Connection:
     if not DB_PATH.exists():
-        print("❌ results.db non trovato. Esegui prima uno scraping.")
+        print("❌ results.db not found. Run a scraping first.")
         raise SystemExit(1)
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
@@ -54,81 +54,81 @@ def _fmt_price(v) -> str:
     return f"{v:>7.2f}"
 
 
-# ─── viste ──────────────────────────────────────────────────────────────
+# ─── views ──────────────────────────────────────────────────────────────
 
 def view_overview(df: pd.DataFrame) -> None:
-    _sep("PANORAMICA DATABASE")
-    print(f"  Prodotti totali  : {len(df):,}")
-    print(f"  Query uniche     : {df['query_id'].nunique():,}")
-    print(f"  Keyword uniche   : {df['keyword'].nunique():,}")
-    print(f"  Run Apify        : {df['run_id'].nunique():,}")
+    _sep("DATABASE OVERVIEW")
+    print(f"  Total products   : {len(df):,}")
+    print(f"  Unique queries   : {df['query_id'].nunique():,}")
+    print(f"  Unique keywords  : {df['keyword'].nunique():,}")
+    print(f"  Apify runs       : {df['run_id'].nunique():,}")
     if "scraped_at" in df.columns and not df["scraped_at"].isna().all():
-        print(f"  Dal              : {df['scraped_at'].min()[:10]}")
-        print(f"  Al               : {df['scraped_at'].max()[:10]}")
+        print(f"  From             : {df['scraped_at'].min()[:10]}")
+        print(f"  To               : {df['scraped_at'].max()[:10]}")
     n_price = df["price_value"].notna().sum()
     pct = n_price / len(df) * 100 if len(df) else 0
-    print(f"  Con prezzo       : {n_price:,}  ({pct:.0f}%)")
+    print(f"  With price       : {n_price:,}  ({pct:.0f}%)")
 
 
 def view_by_language(df: pd.DataFrame) -> None:
-    _sep("PER LINGUA")
+    _sep("BY LANGUAGE")
     g = (
         df.groupby("language")
         .agg(
-            n_prodotti=("id", "count"),
+            n_products=("id", "count"),
             n_keyword=("keyword", "nunique"),
-            prezzo_medio=("price_value", "mean"),
-            prezzo_min=("price_value", "min"),
-            prezzo_max=("price_value", "max"),
+            avg_price=("price_value", "mean"),
+            min_price=("price_value", "min"),
+            max_price=("price_value", "max"),
         )
         .reset_index()
-        .sort_values("n_prodotti", ascending=False)
+        .sort_values("n_products", ascending=False)
     )
-    header = f"  {'Lingua':<8}  {'Prodotti':>9}  {'Keyword':>8}  "
-    header += f"{'Prezzo medio':>13}  {'Min':>8}  {'Max':>8}"
+    header = f"  {'Language':<8}  {'Products':>9}  {'Keyword':>8}  "
+    header += f"{'Avg price':>13}  {'Min':>8}  {'Max':>8}"
     print(header)
     print("  " + "─" * 62)
     for _, row in g.iterrows():
         print(
-            f"  {row['language']:<8}  {int(row['n_prodotti']):>9,}  "
+            f"  {row['language']:<8}  {int(row['n_products']):>9,}  "
             f"{int(row['n_keyword']):>8,}  "
-            f"{_fmt_price(row['prezzo_medio']):>13}  "
-            f"{_fmt_price(row['prezzo_min']):>8}  "
-            f"{_fmt_price(row['prezzo_max']):>8}"
+            f"{_fmt_price(row['avg_price']):>13}  "
+            f"{_fmt_price(row['min_price']):>8}  "
+            f"{_fmt_price(row['max_price']):>8}"
         )
 
 
 def view_by_category(df: pd.DataFrame) -> None:
-    _sep("PER CATEGORIA L1")
+    _sep("BY L1 CATEGORY")
     g = (
         df.groupby("category_l1")
         .agg(
-            n_prodotti=("id", "count"),
-            n_lingue=("language", "nunique"),
+            n_products=("id", "count"),
+            n_languages=("language", "nunique"),
             n_keyword=("keyword", "nunique"),
-            prezzo_medio=("price_value", "mean"),
+            avg_price=("price_value", "mean"),
         )
         .reset_index()
-        .sort_values("n_prodotti", ascending=False)
+        .sort_values("n_products", ascending=False)
     )
-    header = f"  {'Categoria':<26}  {'Prodotti':>9}  {'Lingue':>7}  {'Keyword':>8}  {'Pr. medio':>10}"
+    header = f"  {'Category':<26}  {'Products':>9}  {'Langs':>7}  {'Keyword':>8}  {'Avg price':>10}"
     print(header)
     print("  " + "─" * 66)
     for _, row in g.iterrows():
         cat = str(row["category_l1"])[:25]
         print(
-            f"  {cat:<26}  {int(row['n_prodotti']):>9,}  "
-            f"{int(row['n_lingue']):>7,}  "
+            f"  {cat:<26}  {int(row['n_products']):>9,}  "
+            f"{int(row['n_languages']):>7,}  "
             f"{int(row['n_keyword']):>8,}  "
-            f"{_fmt_price(row['prezzo_medio']):>10}"
+            f"{_fmt_price(row['avg_price']):>10}"
         )
 
 
 def view_top_sellers(df: pd.DataFrame, top: int = 15) -> None:
-    _sep(f"TOP {top} SELLER PER FREQUENZA")
+    _sep(f"TOP {top} SELLERS BY FREQUENCY")
     df_sel = df[df["seller"].notna() & (df["seller"] != "")]
     if df_sel.empty:
-        print("  Nessun seller registrato.")
+        print("  No seller recorded.")
         return
     g = df_sel["seller"].value_counts().head(top)
     for seller, count in g.items():
@@ -138,30 +138,30 @@ def view_top_sellers(df: pd.DataFrame, top: int = 15) -> None:
 
 
 def view_runs(df: pd.DataFrame) -> None:
-    _sep("RUN APIFY (più recenti prima)")
+    _sep("APIFY RUNS (most recent first)")
     if "run_id" not in df.columns or df["run_id"].isna().all():
-        print("  Nessun run_id registrato.")
+        print("  No run_id recorded.")
         return
     g = (
         df.groupby("run_id")
         .agg(
             n=("id", "count"),
             keyword=("keyword", "first"),
-            lingua=("language", "first"),
+            lang_first=("language", "first"),
             when=("scraped_at", "max"),
         )
         .reset_index()
         .sort_values("when", ascending=False)
         .head(30)
     )
-    print(f"  {'Run ID':<36}  {'N':>5}  {'Lingua':<6}  {'Keyword':<35}  {'Data'}")
+    print(f"  {'Run ID':<36}  {'N':>5}  {'Lang':<6}  {'Keyword':<35}  {'Date'}")
     print("  " + "─" * 100)
     for _, row in g.iterrows():
         rid = str(row["run_id"])[:35]
         kw = str(row["keyword"])[:34]
         when = str(row["when"])[:16] if row["when"] else ""
         print(
-            f"  {rid:<36}  {int(row['n']):>5,}  {str(row['lingua']):<6}  "
+            f"  {rid:<36}  {int(row['n']):>5,}  {str(row['lang_first']):<6}  "
             f"{kw:<35}  {when}"
         )
 
@@ -169,34 +169,34 @@ def view_runs(df: pd.DataFrame) -> None:
 def view_keyword_prices(df: pd.DataFrame, keyword: str) -> None:
     sub = df[df["keyword"].str.lower() == keyword.lower()]
     if sub.empty:
-        print(f"  Nessun prodotto per keyword '{keyword}'.")
+        print(f"  No product for keyword '{keyword}'.")
         return
-    _sep(f"KEYWORD: {keyword}  ({len(sub)} prodotti)")
+    _sep(f"KEYWORD: {keyword}  ({len(sub)} products)")
     g = (
         sub.groupby("language")
         .agg(
             n=("id", "count"),
-            media=("price_value", "mean"),
-            mediana=("price_value", "median"),
+            mean=("price_value", "mean"),
+            median=("price_value", "median"),
             min=("price_value", "min"),
             max=("price_value", "max"),
             std=("price_value", "std"),
         )
         .reset_index()
     )
-    print(f"  {'Lingua':<8}  {'N':>5}  {'Media':>8}  {'Mediana':>8}  "
+    print(f"  {'Language':<8}  {'N':>5}  {'Mean':>8}  {'Median':>8}  "
           f"{'Min':>8}  {'Max':>8}  {'Std':>8}")
     print("  " + "─" * 64)
     for _, row in g.iterrows():
         print(
             f"  {row['language']:<8}  {int(row['n']):>5,}  "
-            f"{_fmt_price(row['media']):>8}  "
-            f"{_fmt_price(row['mediana']):>8}  "
+            f"{_fmt_price(row['mean']):>8}  "
+            f"{_fmt_price(row['median']):>8}  "
             f"{_fmt_price(row['min']):>8}  "
             f"{_fmt_price(row['max']):>8}  "
             f"{_fmt_price(row['std']):>8}"
         )
-    _sep("CAMPIONE PRODOTTI")
+    _sep("PRODUCT SAMPLE")
     cols = ["language", "title", "price_value", "seller", "position"]
     sample = sub[cols].sort_values(["language", "position"]).head(30)
     for _, r in sample.iterrows():
@@ -208,7 +208,7 @@ def view_keyword_prices(df: pd.DataFrame, keyword: str) -> None:
 
 
 def view_sample(df: pd.DataFrame, n: int = 20) -> None:
-    _sep(f"CAMPIONE CASUALE ({n} prodotti)")
+    _sep(f"RANDOM SAMPLE ({n} products)")
     cols = ["language", "category_l1", "keyword", "title", "price_value", "seller", "position"]
     sample = df[cols].sample(min(n, len(df)), random_state=42)
     for _, r in sample.iterrows():
@@ -239,7 +239,7 @@ def explore(
     df = _load(where, tuple(params))
 
     if df.empty:
-        print("⚠ Nessun prodotto trovato con i filtri indicati.")
+        print("⚠ No product found with the given filters.")
         return
 
     if keyword:

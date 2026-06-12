@@ -1,8 +1,8 @@
 """
-orchestrator.py — Claude come orchestratore intelligente.
+orchestrator.py — Claude as an intelligent orchestrator.
 
-Uso:
-    python orchestrator.py "Cerco un notebook gaming sotto 1500€"
+Usage:
+    python orchestrator.py "Looking for a gaming laptop under 1500€"
     python orchestrator.py --interactive
 """
 from __future__ import annotations
@@ -24,26 +24,26 @@ MODEL = "claude-sonnet-4-20250514"
 
 
 def _build_query_generation_prompt(user_request: str) -> str:
-    return f"""Sei un assistente specializzato in ricerca prodotti su Google Shopping.
+    return f"""You are an assistant specialized in product search on Google Shopping.
 
-L'utente ha fatto questa richiesta:
+The user made this request:
 "{user_request}"
 
-Genera una lista di query di ricerca ottimizzate per Google Shopping.
-Le query devono coprire varianti e sinonimi del prodotto.
+Generate a list of search queries optimized for Google Shopping.
+The queries must cover variants and synonyms of the product.
 
-Rispondi SOLO con un JSON valido, senza markdown né testo aggiuntivo.
-Formato:
+Reply ONLY with valid JSON, with no markdown or extra text.
+Format:
 [
   {{"query_id": "001", "keyword": "...", "language": "IT", "category_l1": "...", "category_l2": "...", "query_type": "generic", "max_results": 20}},
   ...
 ]
 
-category_l1 deve essere una di: Electronics, Sporting Goods, Apparel & Accessories, Home & Garden, Beauty & Personal Care, Baby & Kids.
-query_type: "generic" o "branded".
-language: "IT", "EN", o "DE" — scegli in base alla lingua della richiesta.
+category_l1 must be one of: Electronics, Sporting Goods, Apparel & Accessories, Home & Garden, Beauty & Personal Care, Baby & Kids.
+query_type: "generic" or "branded".
+language: "IT", "EN", or "DE" — choose based on the language of the request.
 
-Genera tra 3 e 8 query, non di più."""
+Generate between 3 and 8 queries, no more."""
 
 
 def _build_analysis_prompt(user_request: str, results_summary: str) -> str:
@@ -69,7 +69,7 @@ def generate_queries(
     client: anthropic.Anthropic,
     user_request: str,
 ) -> list[QuerySpec]:
-    """Claude genera query strutturate da una richiesta NL."""
+    """Claude generates structured queries from an NL request."""
     response = client.messages.create(
         model=MODEL,
         max_tokens=1000,
@@ -105,7 +105,7 @@ def analyze_results(
     user_request: str,
     results_summary: str,
 ) -> str:
-    """Claude analizza i risultati e produce un report."""
+    """Claude analyzes the results and produces a report."""
     response = client.messages.create(
         model=MODEL,
         max_tokens=2000,
@@ -117,9 +117,9 @@ def analyze_results(
 
 
 def _results_to_summary(all_items: list) -> str:
-    """Sommario testuale dei risultati per l'analisi Claude."""
+    """Textual summary of the results for Claude's analysis."""
     if not all_items:
-        return "Nessun risultato trovato."
+        return "No results found."
 
     lines = []
     for item in all_items:
@@ -131,13 +131,13 @@ def _results_to_summary(all_items: list) -> str:
 
     if len(lines) > 150:
         lines = lines[:150]
-        lines.append(f"... e altri {len(all_items) - 150} prodotti omessi")
+        lines.append(f"... and {len(all_items) - 150} more products omitted")
 
     return "\n".join(lines)
 
 
 def _queries_to_temp_csv(queries: list[QuerySpec]) -> Path:
-    """Scrive le query in un CSV temporaneo nel formato multilingua atteso."""
+    """Writes the queries to a temporary CSV in the expected multilingual format."""
     tmp = tempfile.NamedTemporaryFile(
         mode="w", suffix=".csv", delete=False, encoding="utf-8", newline=""
     )
@@ -167,21 +167,21 @@ async def orchestrate(
     anthropic_key: str | None = None,
     concurrency: int = 3,
 ) -> str:
-    """Flusso completo: NL → query → scraping → analisi → report."""
+    """Full flow: NL → query → scraping → analysis → report."""
     kwargs = {}
     if anthropic_key:
         kwargs["api_key"] = anthropic_key
     client = anthropic.Anthropic(**kwargs)
 
-    # Step 1: genera query
-    print("🧠 Claude sta generando le query di ricerca...")
+    # Step 1: generate queries
+    print("🧠 Claude is generating the search queries...")
     queries = generate_queries(client, user_request)
-    print(f"   → {len(queries)} query generate:")
+    print(f"   → {len(queries)} queries generated:")
     for q in queries:
         print(f"     [{q.query_id}] {q.keyword} ({q.language})")
 
-    # Step 2: CSV temporaneo → pipeline
-    # Raggruppa per lingua ed esegui
+    # Step 2: temporary CSV → pipeline
+    # Group by language and run
     csv_path = _queries_to_temp_csv(queries)
     languages_used = {q.language for q in queries}
 
@@ -194,7 +194,7 @@ async def orchestrate(
 
     csv_path.unlink(missing_ok=True)
 
-    # Step 3: salva in DB
+    # Step 3: save to DB
     conn = init_db()
     all_items = []
     for r in all_results:
@@ -203,8 +203,8 @@ async def orchestrate(
             all_items.extend(r.items)
     conn.close()
 
-    # Step 4: analisi con Claude
-    print("\n🧠 Claude sta analizzando i risultati...")
+    # Step 4: analysis with Claude
+    print("\n🧠 Claude is analyzing the results...")
     summary = _results_to_summary(all_items)
     report = analyze_results(client, user_request, summary)
 
@@ -214,19 +214,19 @@ async def orchestrate(
     run_ts = datetime.now().strftime("%Y%m%d_%H%M")
     report_path = output_dir / f"report_{run_ts}.md"
     report_path.write_text(report, encoding="utf-8")
-    print(f"\n📝 Report salvato: {report_path}")
+    print(f"\n📝 Report saved: {report_path}")
 
     return report
 
 
 async def interactive_mode(apify_token: str, anthropic_key: str | None = None) -> None:
-    """Modalità interattiva."""
-    print("🔍 Product Scraper — Modalità Interattiva")
-    print("   Scrivi cosa cerchi, oppure 'quit' per uscire.\n")
+    """Interactive mode."""
+    print("🔍 Product Scraper — Interactive Mode")
+    print("   Type what you are looking for, or 'quit' to exit.\n")
 
     while True:
         try:
-            request = input("🛒 Cosa cerchi? > ").strip()
+            request = input("🛒 What are you looking for? > ").strip()
         except (EOFError, KeyboardInterrupt):
             break
 
@@ -250,7 +250,7 @@ def main() -> None:
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
 
     if not apify_token:
-        print("❌ APIFY_TOKEN non trovato. Configura il file .env")
+        print("❌ APIFY_TOKEN not found. Configure the .env file")
         sys.exit(1)
 
     if len(sys.argv) > 1 and sys.argv[1] == "--interactive":
@@ -260,8 +260,8 @@ def main() -> None:
         report = asyncio.run(orchestrate(request, apify_token, anthropic_key))
         print(f"\n{report}")
     else:
-        print("Uso:")
-        print('  python orchestrator.py "Cerco un notebook gaming sotto 1500€"')
+        print("Usage:")
+        print('  python orchestrator.py "Looking for a gaming laptop under 1500€"')
         print("  python orchestrator.py --interactive")
 
 

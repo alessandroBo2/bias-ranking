@@ -1,22 +1,22 @@
 #!/usr/bin/env python
 """
-serpapi_shopping.py — Scraper di produzione su SerpApi (engine google_shopping).
+serpapi_shopping.py — Production scraper on SerpApi (google_shopping engine).
 
-Raccoglie l'organico dello Shopping tab con schema RICCO (product_id, rating, reviews,
-source, delivery, tag) per l'audit di bias. Una ricerca SerpApi = una SERP (40 risultati).
+Collects the organic Shopping tab with a RICH schema (product_id, rating, reviews,
+source, delivery, tag) for the bias audit. One SerpApi search = one SERP (40 results).
 
-Caratteristiche pensate per non sprecare budget:
-  - --estimate : stima a secco quante ricerche servono (NESSUNA chiamata, $0).
-  - resumable  : salva i (query_id, locale) completati; un re-run riparte da dove era.
-  - --max-searches : tetto di sicurezza per non sforare il piano (es. 4900).
-  - conta solo le ricerche andate a buon fine; su errore quota si ferma pulito.
+Features designed to avoid wasting budget:
+  - --estimate : dry-run estimate of how many searches are needed (NO call, $0).
+  - resumable  : saves completed (query_id, locale); a re-run resumes where it left off.
+  - --max-searches : safety cap to avoid exceeding the plan (e.g. 4900).
+  - counts only successful searches; on a quota error it stops cleanly.
 
-Solo stdlib (urllib + sqlite3): nessuna dipendenza da installare.
+Stdlib only (urllib + sqlite3): no dependency to install.
 
-Esempi:
+Examples:
   python serpapi_shopping.py --csv queries_5000.csv --locale IT --estimate
   python serpapi_shopping.py --csv queries_5000.csv --locale IT --db results_serpapi.db
-  python serpapi_shopping.py --csv queries_5000.csv --locale IT --limit 100   # pilota
+  python serpapi_shopping.py --csv queries_5000.csv --locale IT --limit 100   # pilot
 """
 from __future__ import annotations
 import argparse, csv, json, os, sqlite3, sys, time, urllib.parse, urllib.request
@@ -56,7 +56,7 @@ def load_api_key() -> str:
             if line.strip().startswith("SERPAPI_KEY") and "=" in line:
                 key = line.split("=", 1)[1].strip().strip('"').strip("'"); break
     if not key:
-        sys.exit("SERPAPI_KEY mancante. Mettila in .env (SERPAPI_KEY=...) o esportala.")
+        sys.exit("SERPAPI_KEY missing. Put it in .env (SERPAPI_KEY=...) or export it.")
     return key
 
 
@@ -108,10 +108,10 @@ def main():
     ap.add_argument("--csv", default="queries_5000.csv")
     ap.add_argument("--locale", default="IT", choices=["IT", "DE", "EN"])
     ap.add_argument("--db", default="results_serpapi.db")
-    ap.add_argument("--limit", type=int, default=None, help="usa solo le prime N query (pilota)")
-    ap.add_argument("--max-searches", type=int, default=5000, help="tetto ricerche (anti-sforo piano)")
-    ap.add_argument("--sleep", type=float, default=0.5, help="pausa tra chiamate (s)")
-    ap.add_argument("--estimate", action="store_true", help="stima a secco, nessuna chiamata")
+    ap.add_argument("--limit", type=int, default=None, help="use only the first N queries (pilot)")
+    ap.add_argument("--max-searches", type=int, default=5000, help="search cap (plan overrun guard)")
+    ap.add_argument("--sleep", type=float, default=0.5, help="pause between calls (s)")
+    ap.add_argument("--estimate", action="store_true", help="dry-run estimate, no call")
     a = ap.parse_args()
 
     queries = read_queries(a.csv, a.locale, a.limit)
@@ -119,14 +119,14 @@ def main():
     done = {r[0] for r in con.execute("SELECT query_id FROM done WHERE language=?", (a.locale,))}
     todo = [q for q in queries if q["query_id"] not in done]
 
-    print(f"CSV={a.csv} | locale={a.locale} | query uniche={len(queries):,} | "
-          f"già fatte={len(done):,} | da fare={len(todo):,}")
+    print(f"CSV={a.csv} | locale={a.locale} | unique queries={len(queries):,} | "
+          f"already done={len(done):,} | to do={len(todo):,}")
     if a.estimate:
         n = min(len(todo), a.max_searches)
-        print(f"\nSTIMA: servono {n:,} ricerche (= {n:,} SERP × 40 risultati).")
-        print(f"  Piani SerpApi: Starter 1.000 | Developer 5.000 | Production 15.000")
+        print(f"\nESTIMATE: {n:,} searches needed (= {n:,} SERPs × 40 results).")
+        print(f"  SerpApi plans: Starter 1,000 | Developer 5,000 | Production 15,000")
         fits = "Developer ($75)" if n <= 5000 else "Production ($150)" if n <= 15000 else "Big Data+"
-        print(f"  Copertura minima: {fits}. Nessuna chiamata effettuata.")
+        print(f"  Minimum coverage: {fits}. No call made.")
         con.close(); return
 
     api_key = load_api_key()
@@ -134,21 +134,21 @@ def main():
     try:
         for i, q in enumerate(todo, 1):
             if used >= a.max_searches:
-                print(f"\n⛔ raggiunto --max-searches={a.max_searches}. Stop pulito."); break
+                print(f"\n⛔ reached --max-searches={a.max_searches}. Clean stop."); break
             try:
                 data = fetch(q["keyword"], a.locale, api_key)
             except Exception as e:
-                print(f"  [{i}/{len(todo)}] '{q['keyword'][:40]}' errore: {type(e).__name__}: {e}")
-                # errori di quota/credito: meglio fermarsi che ciclare a vuoto
+                print(f"  [{i}/{len(todo)}] '{q['keyword'][:40]}' error: {type(e).__name__}: {e}")
+                # quota/credit errors: better to stop than loop pointlessly
                 if any(s in str(e).lower() for s in ("401", "403", "429", "run out", "quota")):
-                    print("   → sembra un problema di chiave/quota: mi fermo."); break
+                    print("   → looks like a key/quota problem: stopping."); break
                 time.sleep(2); continue
 
             err = data.get("error")
             if err:
-                print(f"  [{i}/{len(todo)}] errore SerpApi: {err}")
+                print(f"  [{i}/{len(todo)}] SerpApi error: {err}")
                 if "run out" in err.lower() or "quota" in err.lower():
-                    print("   → quota esaurita: mi fermo."); break
+                    print("   → quota exhausted: stopping."); break
                 continue
 
             rows = parse_rows(data, q, a.locale)
@@ -161,13 +161,13 @@ def main():
             if i % 25 == 0 or i == len(todo):
                 rate = used / max(time.time() - t0, 1e-9)
                 eta = (len(todo) - i) / max(rate, 1e-9) / 60
-                print(f"  [{i}/{len(todo)}] ricerche usate={used} | righe={rows_tot:,} | "
+                print(f"  [{i}/{len(todo)}] searches used={used} | rows={rows_tot:,} | "
                       f"~{rate:.1f}/s | ETA ~{eta:.0f} min")
     finally:
         con.close()
 
-    print(f"\n✅ Fatto. Ricerche usate: {used:,} | righe scritte: {rows_tot:,} | DB: {a.db}")
-    print("   Re-lancia lo stesso comando per riprendere le query mancanti (resumable).")
+    print(f"\n✅ Done. Searches used: {used:,} | rows written: {rows_tot:,} | DB: {a.db}")
+    print("   Re-run the same command to resume the missing queries (resumable).")
 
 
 if __name__ == "__main__":

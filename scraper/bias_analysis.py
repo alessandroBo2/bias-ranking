@@ -1,18 +1,18 @@
 """
-bias_analysis.py — Analisi di sbilanciamento nelle risposte Google Shopping.
+bias_analysis.py — Imbalance analysis in Google Shopping responses.
 
-Rileva:
-  1. Concentrazione seller (HHI, Gini, CR-k)
-  2. Position bias (chi occupa sistematicamente le prime posizioni?)
-  3. Disparità cross-lingua (stesso prodotto, prezzi diversi per paese)
-  4. Price clustering (i risultati coprono davvero il mercato?)
-  5. Category coverage (Google restituisce risultati bilanciati?)
-  6. Seller dominance per categoria
+Detects:
+  1. Seller concentration (HHI, Gini, CR-k)
+  2. Position bias (who systematically occupies the top positions?)
+  3. Cross-language disparity (same product, different prices by country)
+  4. Price clustering (do the results really cover the market?)
+  5. Category coverage (does Google return balanced results?)
+  6. Seller dominance by category
 
-Uso:
-    python bias_analysis.py                # analisi completa + report
-    python bias_analysis.py --format html  # anche dashboard HTML
-    python bias_analysis.py --format csv   # export metriche in CSV
+Usage:
+    python bias_analysis.py                # full analysis + report
+    python bias_analysis.py --format html  # also HTML dashboard
+    python bias_analysis.py --format csv   # export metrics to CSV
 """
 from __future__ import annotations
 
@@ -32,22 +32,22 @@ OUTPUT_DIR = Path("output")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# 1. CONCENTRAZIONE SELLER
+# 1. SELLER CONCENTRATION
 # ═══════════════════════════════════════════════════════════════════════════
 
 def herfindahl_hirschman_index(shares: np.ndarray) -> float:
     """
-    Indice HHI: somma dei quadrati delle quote di mercato.
-    Range: 1/N (perfetta concorrenza) → 1.0 (monopolio).
-    Soglie DoJ USA: <0.15 competitivo, 0.15-0.25 moderato, >0.25 concentrato.
+    HHI index: sum of squared market shares.
+    Range: 1/N (perfect competition) → 1.0 (monopoly).
+    US DoJ thresholds: <0.15 competitive, 0.15-0.25 moderate, >0.25 concentrated.
     """
     return float(np.sum(shares ** 2))
 
 
 def gini_coefficient(values: np.ndarray) -> float:
     """
-    Coefficiente di Gini: misura la disuguaglianza nella distribuzione.
-    0.0 = perfetta uguaglianza, 1.0 = massima disuguaglianza.
+    Gini coefficient: measures inequality in the distribution.
+    0.0 = perfect equality, 1.0 = maximum inequality.
     """
     values = np.sort(values)
     n = len(values)
@@ -58,7 +58,7 @@ def gini_coefficient(values: np.ndarray) -> float:
 
 
 def concentration_ratio(counts: pd.Series, k: int = 3) -> float:
-    """CR-k: quota cumulativa dei top-k seller."""
+    """CR-k: cumulative share of the top-k sellers."""
     total = counts.sum()
     if total == 0:
         return 0.0
@@ -67,12 +67,12 @@ def concentration_ratio(counts: pd.Series, k: int = 3) -> float:
 
 def seller_concentration_analysis(df: pd.DataFrame) -> dict:
     """
-    Analisi completa della concentrazione seller.
-    Restituisce metriche globali e per categoria.
+    Full seller concentration analysis.
+    Returns global and per-category metrics.
     """
     results = {}
 
-    # Globale
+    # Global
     seller_counts = df[df["seller"] != ""].groupby("seller").size()
     if len(seller_counts) > 0:
         shares = seller_counts.values / seller_counts.sum()
@@ -86,7 +86,7 @@ def seller_concentration_analysis(df: pd.DataFrame) -> dict:
             "top10_sellers": seller_counts.nlargest(10).to_dict(),
         }
 
-    # Per categoria L1
+    # By L1 category
     results["by_category"] = {}
     for cat in df["category_l1"].unique():
         cat_df = df[(df["category_l1"] == cat) & (df["seller"] != "")]
@@ -110,12 +110,12 @@ def seller_concentration_analysis(df: pd.DataFrame) -> dict:
 
 def position_bias_analysis(df: pd.DataFrame) -> dict:
     """
-    Analizza se certi seller occupano sistematicamente le prime posizioni.
+    Analyzes whether certain sellers systematically occupy the top positions.
 
-    Metriche:
-    - Posizione media per seller (chi sta sempre in alto?)
-    - % di volte in top-3 / top-5 per seller
-    - Correlazione posizione-prezzo (Google favorisce i più cari?)
+    Metrics:
+    - Average position per seller (who is always at the top?)
+    - % of times in top-3 / top-5 per seller
+    - Position-price correlation (does Google favor the more expensive?)
     """
     results = {}
     df_with_seller = df[df["seller"] != ""].copy()
@@ -123,7 +123,7 @@ def position_bias_analysis(df: pd.DataFrame) -> dict:
     if df_with_seller.empty:
         return results
 
-    # Posizione media per seller (solo seller con >= 5 apparizioni)
+    # Average position per seller (only sellers with >= 5 appearances)
     seller_pos = df_with_seller.groupby("seller")["position"].agg(["mean", "count"])
     seller_pos = seller_pos[seller_pos["count"] >= 5].sort_values("mean")
 
@@ -132,7 +132,7 @@ def position_bias_analysis(df: pd.DataFrame) -> dict:
         for row in seller_pos.head(15).itertuples()
     }
 
-    # % in top-3 e top-5
+    # % in top-3 and top-5
     top3_mask = df_with_seller["position"] <= 3
     top5_mask = df_with_seller["position"] <= 5
 
@@ -156,7 +156,7 @@ def position_bias_analysis(df: pd.DataFrame) -> dict:
         for seller, count in top5_counts.nlargest(10).items()
     }
 
-    # Correlazione posizione-prezzo
+    # Position-price correlation
     df_pos_price = df_with_seller.dropna(subset=["price_value"])
     if len(df_pos_price) > 10:
         corr = df_pos_price["position"].corr(df_pos_price["price_value"])
@@ -175,13 +175,13 @@ def position_bias_analysis(df: pd.DataFrame) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# 3. DISPARITÀ CROSS-LINGUA
+# 3. CROSS-LANGUAGE DISPARITY
 # ═══════════════════════════════════════════════════════════════════════════
 
 def cross_language_analysis(df: pd.DataFrame) -> dict:
     """
-    Confronta i risultati per lo stesso prodotto tra lingue diverse.
-    Richiede che il dataset contenga query in più lingue.
+    Compares results for the same product across different languages.
+    Requires the dataset to contain queries in multiple languages.
     """
     languages = df["language"].unique()
     if len(languages) < 2:
@@ -190,7 +190,7 @@ def cross_language_analysis(df: pd.DataFrame) -> dict:
     results = {}
     df_priced = df.dropna(subset=["price_value"])
 
-    # Confronto prezzo medio per categoria L2 tra lingue
+    # Average price comparison by L2 category across languages
     price_by_lang_cat = (
         df_priced
         .groupby(["language", "category_l2"])["price_value"]
@@ -198,7 +198,7 @@ def cross_language_analysis(df: pd.DataFrame) -> dict:
         .reset_index()
     )
 
-    # Trova categorie presenti in più lingue
+    # Find categories present in multiple languages
     multi_lang_cats = (
         price_by_lang_cat
         .groupby("category_l2")["language"]
@@ -226,10 +226,10 @@ def cross_language_analysis(df: pd.DataFrame) -> dict:
     disparities.sort(key=lambda x: x["disparity_pct"], reverse=True)
     results["price_disparities"] = disparities[:20]
 
-    # Conteggio risultati per lingua
+    # Result count per language
     results["results_per_language"] = df.groupby("language").size().to_dict()
 
-    # Seller overlap tra lingue
+    # Seller overlap across languages
     sellers_by_lang = {
         lang: set(df[df["language"] == lang]["seller"].unique()) - {""}
         for lang in languages
@@ -260,9 +260,9 @@ def cross_language_analysis(df: pd.DataFrame) -> dict:
 
 def price_diversity_analysis(df: pd.DataFrame) -> dict:
     """
-    Quanto sono diversificati i risultati di prezzo?
-    Un basso CoV o una distribuzione concentrata suggeriscono che Google
-    restituisce risultati troppo omogenei (filter bubble di prezzo).
+    How diversified are the price results?
+    A low CoV or a concentrated distribution suggests that Google
+    returns results that are too homogeneous (price filter bubble).
     """
     results = {}
     df_priced = df.dropna(subset=["price_value"])
@@ -282,13 +282,13 @@ def price_diversity_analysis(df: pd.DataFrame) -> dict:
                 ) if np.mean(prices) > 0 else 0,
             }
 
-    # Ordina per CoV (basso = poca diversità = possibile bias)
+    # Sort by CoV (low = little diversity = possible bias)
     sorted_by_cov = sorted(by_keyword.items(), key=lambda x: x[1]["cov"])
 
     results["least_diverse"] = dict(sorted_by_cov[:10])
     results["most_diverse"] = dict(sorted_by_cov[-10:])
 
-    # Media globale del CoV
+    # Global average CoV
     covs = [v["cov"] for v in by_keyword.values()]
     if covs:
         results["global_avg_cov"] = round(float(np.mean(covs)), 3)
@@ -309,17 +309,17 @@ def price_diversity_analysis(df: pd.DataFrame) -> dict:
 
 def category_coverage_analysis(df: pd.DataFrame) -> dict:
     """
-    Google restituisce lo stesso numero di risultati per ogni categoria?
-    Categorie con pochi risultati potrebbero essere penalizzate dall'algoritmo.
+    Does Google return the same number of results for each category?
+    Categories with few results might be penalized by the algorithm.
 
-    Una "query" è qui intesa come una singola interrogazione effettiva
-    (query_id, language): la stessa keyword in lingue diverse conta come
-    interrogazioni distinte. Senza questa distinzione, una query eseguita in
-    3 lingue gonfierebbe il conteggio "risultati per query" di un fattore 3.
+    A "query" here means a single actual interrogation
+    (query_id, language): the same keyword in different languages counts as
+    distinct interrogations. Without this distinction, a query run in
+    3 languages would inflate the "results per query" count by a factor of 3.
     """
     results = {}
 
-    # Risultati per (categoria, interrogazione = query_id × lingua)
+    # Results per (category, interrogation = query_id × language)
     avg_by_cat = (
         df.groupby(["category_l1", "query_id", "language"])
         .size().reset_index(name="n_results")
@@ -331,12 +331,12 @@ def category_coverage_analysis(df: pd.DataFrame) -> dict:
     global_avg = avg_by_cat["n_results"].mean()
     results["global_avg_results_per_query"] = round(global_avg, 1)
 
-    # Categorie sotto-rappresentate (< 70% della media globale)
+    # Under-represented categories (< 70% of the global average)
     underserved = cat_avg[cat_avg < global_avg * 0.7]
     if not underserved.empty:
         results["underserved_categories"] = underserved.round(1).to_dict()
 
-    # Distribuzione anche per lingua per esporre asimmetrie cross-lingua
+    # Also distribution per language to expose cross-language asymmetries
     avg_by_cat_lang = (
         avg_by_cat.groupby(["category_l1", "language"])["n_results"]
         .mean().round(1).unstack()
@@ -345,7 +345,7 @@ def category_coverage_analysis(df: pd.DataFrame) -> dict:
         avg_by_cat_lang.fillna(0).to_dict(orient="index")
     )
 
-    # % di risultati con prezzo per categoria (Google non mostra sempre il prezzo)
+    # % of results with price per category (Google doesn't always show the price)
     price_coverage = df.groupby("category_l1")["price_value"].apply(
         lambda x: round(x.notna().mean() * 100, 1)
     )
@@ -355,11 +355,11 @@ def category_coverage_analysis(df: pd.DataFrame) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# REPORT TESTUALE
+# TEXTUAL REPORT
 # ═══════════════════════════════════════════════════════════════════════════
 
 def print_bias_report(df: pd.DataFrame) -> dict:
-    """Esegue tutte le analisi e stampa un report testuale."""
+    """Runs all analyses and prints a textual report."""
     print(f"\n{'='*70}")
     print("🔍 BIAS ANALYSIS — GOOGLE SHOPPING")
     print(f"{'='*70}")
@@ -508,11 +508,11 @@ def print_bias_report(df: pd.DataFrame) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# DASHBOARD BIAS
+# BIAS DASHBOARD
 # ═══════════════════════════════════════════════════════════════════════════
 
 def build_bias_dashboard(df: pd.DataFrame, run_ts: str | None = None) -> Path | None:
-    """Dashboard Plotly dedicata all'analisi di bias. Ritorna il path HTML."""
+    """Plotly dashboard dedicated to the bias analysis. Returns the HTML path."""
     from datetime import datetime
     OUTPUT_DIR.mkdir(exist_ok=True)
     ts = run_ts or datetime.now().strftime("%Y%m%d_%H%M")
@@ -533,7 +533,7 @@ def build_bias_dashboard(df: pd.DataFrame, run_ts: str | None = None) -> Path | 
         horizontal_spacing=0.10,
     )
 
-    # 1. Lorenz curve per concentrazione seller
+    # 1. Lorenz curve for seller concentration
     seller_counts = df_with_seller.groupby("seller").size().sort_values()
     cumulative = np.cumsum(seller_counts.values) / seller_counts.sum()
     x_pct = np.arange(1, len(cumulative) + 1) / len(cumulative)
@@ -549,7 +549,7 @@ def build_bias_dashboard(df: pd.DataFrame, run_ts: str | None = None) -> Path | 
         row=1, col=1,
     )
 
-    # 2. Posizione media top seller
+    # 2. Average position of top sellers
     if not df_with_seller.empty:
         seller_pos = (
             df_with_seller.groupby("seller")["position"]
@@ -565,7 +565,7 @@ def build_bias_dashboard(df: pd.DataFrame, run_ts: str | None = None) -> Path | 
             row=1, col=2,
         )
 
-    # 3. Box plot posizioni per top 5 seller
+    # 3. Position box plot for the top 5 sellers
     top5_sellers = df_with_seller.groupby("seller").size().nlargest(5).index
     for seller in top5_sellers:
         subset = df_with_seller[df_with_seller["seller"] == seller]
@@ -574,7 +574,7 @@ def build_bias_dashboard(df: pd.DataFrame, run_ts: str | None = None) -> Path | 
             row=2, col=1,
         )
 
-    # 4. CoV box plot per categoria (sostituisce bar chart illeggibile con 1364 barre)
+    # 4. CoV box plot by category (replaces an unreadable bar chart with 1364 bars)
     cov_data = []
     for kw, grp in df_priced.groupby("keyword"):
         if len(grp) >= 5 and grp["price_value"].mean() > 0:
@@ -598,7 +598,7 @@ def build_bias_dashboard(df: pd.DataFrame, run_ts: str | None = None) -> Path | 
                 row=2, col=2,
             )
 
-    # 5. Risultati per query per categoria
+    # 5. Results per query by category
     results_per_q = (
         df.groupby(["category_l1", "query_id"]).size()
         .reset_index(name="n_results")
@@ -610,7 +610,7 @@ def build_bias_dashboard(df: pd.DataFrame, run_ts: str | None = None) -> Path | 
             row=3, col=1,
         )
 
-    # 6. Top seller in posizioni 1-3
+    # 6. Top sellers in positions 1-3
     top3 = df_with_seller[df_with_seller["position"] <= 3]
     top3_counts = top3.groupby("seller").size().nlargest(10).sort_values(ascending=True)
     fig.add_trace(
@@ -635,16 +635,16 @@ def build_bias_dashboard(df: pd.DataFrame, run_ts: str | None = None) -> Path | 
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# EXPORT CSV METRICHE
+# CSV METRICS EXPORT
 # ═══════════════════════════════════════════════════════════════════════════
 
 def export_bias_metrics_csv(df: pd.DataFrame, run_ts: str | None = None) -> Path:
-    """Esporta le metriche di bias in CSV per ulteriori analisi."""
+    """Exports the bias metrics to CSV for further analysis."""
     from datetime import datetime
     OUTPUT_DIR.mkdir(exist_ok=True)
     ts = run_ts or datetime.now().strftime("%Y%m%d_%H%M")
 
-    # Metriche per keyword
+    # Metrics per keyword
     rows = []
     df_priced = df.dropna(subset=["price_value"])
     df_with_seller = df[df["seller"] != ""]
@@ -669,7 +669,7 @@ def export_bias_metrics_csv(df: pd.DataFrame, run_ts: str | None = None) -> Path
             "has_price_pct": round(grp["price_value"].notna().mean() * 100, 1),
         }
 
-        # HHI per seller nella query
+        # HHI per seller within the query
         if len(grp_seller) > 0:
             sc = grp_seller.groupby("seller").size()
             shares = sc.values / sc.sum()
@@ -682,7 +682,7 @@ def export_bias_metrics_csv(df: pd.DataFrame, run_ts: str | None = None) -> Path
     metrics_df = pd.DataFrame(rows)
     csv_path = OUTPUT_DIR / f"bias_metrics_{ts}.csv"
     metrics_df.to_csv(csv_path, index=False)
-    print(f"📄 Metriche bias: {csv_path}")
+    print(f"📄 Bias metrics: {csv_path}")
     return csv_path
 
 
@@ -691,10 +691,10 @@ def export_bias_metrics_csv(df: pd.DataFrame, run_ts: str | None = None) -> Path
 # ═══════════════════════════════════════════════════════════════════════════
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Analisi bias Google Shopping")
+    parser = argparse.ArgumentParser(description="Google Shopping bias analysis")
     parser.add_argument(
         "--format", "-f", choices=["text", "html", "csv", "all"], default="all",
-        help="Formato output (default: all)",
+        help="Output format (default: all)",
     )
     parser.add_argument("--db", type=Path, default=DB_PATH)
     args = parser.parse_args()
@@ -704,7 +704,7 @@ def main() -> None:
     conn.close()
 
     if df.empty:
-        print("⚠ Database vuoto. Esegui prima la pipeline di scraping.")
+        print("⚠ Empty database. Run the scraping pipeline first.")
         return
 
     if args.format in ("text", "all"):

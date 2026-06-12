@@ -1,5 +1,5 @@
 """
-storage.py — Persistenza su SQLite + JSONL raw per audit trail.
+storage.py — Persistence to SQLite + raw JSONL for an audit trail.
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ DB_PATH = Path("results.db")
 
 
 def init_db(db_path: Path = DB_PATH) -> sqlite3.Connection:
-    """Crea il database e la tabella se non esistono."""
+    """Creates the database and the table if they do not exist."""
     RAW_DIR.mkdir(exist_ok=True)
     conn = sqlite3.connect(str(db_path))
     conn.execute("PRAGMA journal_mode=WAL")
@@ -66,7 +66,7 @@ def save_items(
     items: list[ScrapedItem],
     conn: sqlite3.Connection | None = None,
 ) -> int:
-    """Salva gli item su SQLite e scrive il JSONL raw."""
+    """Saves the items to SQLite and writes the raw JSONL."""
     own_conn = conn is None
     if own_conn:
         conn = init_db()
@@ -119,7 +119,7 @@ def query_db(
     params: tuple = (),
     db_path: Path = DB_PATH,
 ) -> list[dict]:
-    """Esegue una query SELECT e restituisce lista di dict."""
+    """Runs a SELECT query and returns a list of dicts."""
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     cursor = conn.execute(sql, params)

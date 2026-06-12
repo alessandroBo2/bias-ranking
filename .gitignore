@@ -3,7 +3,7 @@
 *.env
 !*.env.template
 
-# Dati grezzi e DB (non versionati: pesanti e/o con possibili chiavi nei link)
+# Raw data and DBs (not versioned: heavy and/or with possible keys in links)
 raw/
 *.db
 *.db-wal
@@ -11,11 +11,11 @@ raw/
 *.parquet
 *.jsonl
 
-# Modelli / bundle
+# Models / bundles
 minilm_it/
 *.zip
 
-# Ambienti virtuali
+# Virtual environments
 bias/
 venv/
 .venv/
@@ -27,7 +27,7 @@ __pycache__/
 *.pyo
 .ipynb_checkpoints/
 
-# Output generati a runtime (tranne le figure di esempio committate a mano)
+# Runtime-generated output (except the example figures committed by hand)
 bias_summary_*.csv
 nb_*.png
 !analysis/figures/*.png
@@ -38,5 +38,5 @@ nb_*.png
 .idea/
 .vscode/
 
-# Campioni di validazione SerpApi (runtime)
+# SerpApi validation samples (runtime)
 validation_samples/

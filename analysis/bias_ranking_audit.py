@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 """
-Audit di bias su Google Shopping — Learning-to-rank (LambdaMART) con encoder semantico.
-Versione CLI allineata al notebook bias_ranking_audit.ipynb.
+Bias audit on Google Shopping — Learning-to-rank (LambdaMART) with a semantic encoder.
+CLI version aligned with the bias_ranking_audit.ipynb notebook.
 
 Encoder:
-  sentence-transformers -> MiniLM pieno (paraphrase-multilingual-MiniLM-L12-v2). Richiede torch.
-                           Usa --model-path per caricarlo OFFLINE da una cartella locale.
-  model2vec             -> statico multilingue, niente torch, CPU. Default in sandbox.
-  tfidf                 -> proxy lessicale, per confronto.
+  sentence-transformers -> full MiniLM (paraphrase-multilingual-MiniLM-L12-v2). Requires torch.
+                           Use --model-path to load it OFFLINE from a local folder.
+  model2vec             -> static multilingual, no torch, CPU. Default in sandbox.
+  tfidf                 -> lexical proxy, for comparison.
 
-Esempi:
+Examples:
   python bias_ranking_audit.py --db results.db --country IT --encoder sentence-transformers --model-path minilm_it
   python bias_ranking_audit.py --db results.db --country IT --encoder model2vec --seeds 10
 """
@@ -28,7 +28,7 @@ except Exception:
     DEVICE = "cpu"
 
 
-# ----------------------------- rilevanza ----------------------------------- #
+# ----------------------------- relevance ----------------------------------- #
 def _cosine_rows(K, T):
     K = K / (np.linalg.norm(K, axis=1, keepdims=True) + 1e-9)
     T = T / (np.linalg.norm(T, axis=1, keepdims=True) + 1e-9)
@@ -68,7 +68,7 @@ def compute_relevance(df, encoder, model_path=""):
     try:
         return fn(df, model_path), encoder
     except Exception as e:
-        print(f"[rel] '{encoder}' non disponibile ({type(e).__name__}: {e}) -> fallback TF-IDF")
+        print(f"[rel] '{encoder}' not available ({type(e).__name__}: {e}) -> fallback TF-IDF")
         return rel_tfidf(df), "tfidf(fallback)"
 
 
@@ -85,7 +85,7 @@ def load(db_path, country):
         con.close()
     df = df[df["price_value"].notna() & (df["price_value"] > 0)].reset_index(drop=True)
     if df.empty:
-        raise SystemExit(f"Nessuna riga con prezzo valido per language='{country}'.")
+        raise SystemExit(f"No row with a valid price for language='{country}'.")
     return df
 
 def build_features(df, rel):
@@ -134,50 +134,50 @@ def _make_plots(country, used, results, A, sv, dte, lift_single):
     import shap
     tag = f"{country}_{used}"
 
-    # 1) NDCG@10 per modello
+    # 1) NDCG@10 per model
     fig, ax = plt.subplots(figsize=(7, 3.6))
     ks = list(results); vs = [results[k] for k in ks]
     ax.barh(ks, vs, color=["#bdbdbd", "#bdbdbd", "#4c78a8", "#e45756"]); ax.invert_yaxis()
     ax.set_xlim(0.35, max(vs) + 0.03)
     for y, v in enumerate(vs):
         ax.text(v + 0.003, y, f"{v:.3f}", va="center", fontsize=10)
-    ax.set_xlabel("NDCG@10 (SERP di test)")
-    ax.set_title(f"Ricostruzione dell'ordine di Google — {country} ({used})")
+    ax.set_xlabel("NDCG@10 (test SERPs)")
+    ax.set_title(f"Reconstruction of Google's ordering — {country} ({used})")
     plt.tight_layout(); plt.savefig(f"nb_ndcg_{tag}.png", dpi=120, bbox_inches="tight"); plt.close()
 
-    # 2) distribuzione del lift sui seed
+    # 2) lift distribution across seeds
     fig, ax = plt.subplots(figsize=(7, 3.2))
     rng = np.random.default_rng(1)
     ax.axvline(0, color="#999", lw=1, ls="--")
     ax.scatter(A[:, 2], rng.normal(0, 0.03, len(A)), color="#e45756", alpha=0.8, zorder=3)
     ax.errorbar(A[:, 2].mean(), 0, xerr=A[:, 2].std(), fmt="o", color="black", capsize=4, zorder=4,
-                label=f"media {A[:,2].mean():+.3f} ± {A[:,2].std():.3f}")
-    ax.set_yticks([]); ax.set_xlabel("lift NDCG@10 (merito+venditore − solo merito)")
-    ax.set_title(f"Lift del venditore su {len(A)} split"); ax.legend(loc="upper left", fontsize=9)
+                label=f"mean {A[:,2].mean():+.3f} ± {A[:,2].std():.3f}")
+    ax.set_yticks([]); ax.set_xlabel("lift NDCG@10 (merit+seller − merit only)")
+    ax.set_title(f"Seller lift across {len(A)} splits"); ax.legend(loc="upper left", fontsize=9)
     plt.tight_layout(); plt.savefig(f"nb_lift_{tag}.png", dpi=120, bbox_inches="tight"); plt.close()
 
-    # 3) SHAP summary (modello merito+venditore, split seed 42)
+    # 3) SHAP summary (merit+seller model, seed-42 split)
     shap.summary_plot(sv, dte[MERIT + PLATFORM], show=False, max_display=10)
     plt.tight_layout(); plt.savefig(f"nb_shap_{tag}.png", dpi=120, bbox_inches="tight"); plt.close()
-    print(f"-> grafici: nb_ndcg_{tag}.png, nb_lift_{tag}.png, nb_shap_{tag}.png")
+    print(f"-> charts: nb_ndcg_{tag}.png, nb_lift_{tag}.png, nb_shap_{tag}.png")
 
 
 def run(df, used, country, n_seeds=10, out_csv=True, make_plots=True):
     import shap
-    # baseline + singolo split (seed 42)
+    # baseline + single split (seed 42)
     tr, te = _split(df, 42); dte_all = df.iloc[te].sort_values("run_id")
     rng = np.random.default_rng(0)
     nd_rand  = _ndcg_baseline(dte_all, lambda g: rng.random(len(g)))
     nd_price = _ndcg_baseline(dte_all, lambda g: -g["price_value"].values)
     mA, _, nA = _train(df, MERIT, tr, te)
     mB, dte, nB = _train(df, MERIT + PLATFORM, tr, te)
-    print(f"NDCG@10 | random {nd_rand:.3f} | prezzo {nd_price:.3f} | "
-          f"solo merito {nA:.3f} | +venditore {nB:.3f} | lift {nB-nA:+.3f}")
-    results = {"random": nd_rand, "prezzo crescente": nd_price,
-               "solo merito": nA, "merito + venditore": nB}
+    print(f"NDCG@10 | random {nd_rand:.3f} | price {nd_price:.3f} | "
+          f"merit only {nA:.3f} | +seller {nB:.3f} | lift {nB-nA:+.3f}")
+    results = {"random": nd_rand, "price ascending": nd_price,
+               "merit only": nA, "merit + seller": nB}
     sv_main = shap.TreeExplainer(mB).shap_values(dte[MERIT + PLATFORM])
 
-    # stabilita' multiseed
+    # multiseed stability
     rows = []
     for s in range(n_seeds):
         tr, te = _split(df, s)
@@ -193,7 +193,7 @@ def run(df, used, country, n_seeds=10, out_csv=True, make_plots=True):
 
     if out_csv:
         pd.DataFrame({
-            "metric": ["NDCG random", "NDCG prezzo", "NDCG solo merito", "NDCG +venditore",
+            "metric": ["NDCG random", "NDCG price", "NDCG merit only", "NDCG +seller",
                        "lift mean", "lift std", "is_amazon SHAP mean", "is_amazon SHAP std"],
             "value": [nd_rand, nd_price, A[:,0].mean(), A[:,1].mean(),
                       A[:,2].mean(), A[:,2].std(), A[:,3].mean(), A[:,3].std()],
@@ -205,7 +205,7 @@ def run(df, used, country, n_seeds=10, out_csv=True, make_plots=True):
         try:
             _make_plots(country, used, results, A, sv_main, dte, nB - nA)
         except Exception as e:
-            print(f"[plot] salto i grafici ({type(e).__name__}: {e})")
+            print(f"[plot] skipping charts ({type(e).__name__}: {e})")
 
 
 def main():
@@ -214,16 +214,16 @@ def main():
     ap.add_argument("--country", default="IT")
     ap.add_argument("--encoder", default="model2vec",
                     choices=["sentence-transformers", "model2vec", "tfidf"])
-    ap.add_argument("--model-path", default="", help="cartella locale del modello (caricamento offline)")
+    ap.add_argument("--model-path", default="", help="local model folder (offline loading)")
     ap.add_argument("--seeds", type=int, default=10)
-    ap.add_argument("--no-plots", action="store_true", help="non generare i PNG")
+    ap.add_argument("--no-plots", action="store_true", help="do not generate the PNGs")
     a = ap.parse_args()
     print(f"DB={a.db} | country={a.country} | encoder={a.encoder} | device={DEVICE}"
           + (f" | model-path={a.model_path}" if a.model_path else ""))
     df = load(a.db, a.country)
-    print(f"righe {len(df):,} | SERP {df['run_id'].nunique()}")
+    print(f"rows {len(df):,} | SERP {df['run_id'].nunique()}")
     rel, used = compute_relevance(df, a.encoder, a.model_path)
-    print(f"rilevanza: {used} | mean={np.mean(rel):.3f} std={np.std(rel):.3f}")
+    print(f"relevance: {used} | mean={np.mean(rel):.3f} std={np.std(rel):.3f}")
     df = build_features(df, rel)
     run(df, used, a.country, n_seeds=a.seeds, make_plots=not a.no_plots)
 

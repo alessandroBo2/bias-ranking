@@ -1,12 +1,12 @@
 """
-scraper_api.py — Backend ScraperAPI per Google Shopping.
+scraper_api.py — ScraperAPI backend for Google Shopping.
 
-Alternativa ad Apify: usa il structured endpoint di ScraperAPI
-(https://api.scraperapi.com/structured/google/shopping) che gestisce
-internamente proxy residenziali, fingerprinting e CAPTCHA.
+Alternative to Apify: uses the ScraperAPI structured endpoint
+(https://api.scraperapi.com/structured/google/shopping) that handles
+residential proxies, fingerprinting, and CAPTCHA internally.
 
-Costo: ~25 crediti/request. Piano Hobby (100k crediti/mese = $29)
-copre comodamente 1.200 query (30.000 crediti).
+Cost: ~25 credits/request. Hobby plan (100k credits/month = $29)
+comfortably covers 1,200 queries (30,000 credits).
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ _LANG_TO_TLD = {"IT": "it", "EN": "com", "DE": "de"}
 
 
 def _decode_sa_link(link: str) -> str:
-    """Estrae l'URL reale dal proxy ScraperAPI, altrimenti restituisce il link as-is."""
+    """Extracts the real URL from the ScraperAPI proxy, otherwise returns the link as-is."""
     if not link or "api.scraperapi.com" not in link:
         return link
     from urllib.parse import urlparse, parse_qs
@@ -45,11 +45,11 @@ def _sa_item_to_scraped(
     position: int,
     run_id: str,
 ) -> ScrapedItem:
-    """Converte un item ScraperAPI → ScrapedItem normalizzato."""
+    """Converts a ScraperAPI item → normalized ScrapedItem."""
     price_raw = item.get("price", "") or ""
 
-    # ScraperAPI fornisce `extracted_price` già parsato — usarlo direttamente
-    # evita ambiguità nel formato (es. "1.234,56 €" vs "1,234.56 €").
+    # ScraperAPI provides `extracted_price` already parsed — using it directly
+    # avoids format ambiguity (e.g. "1.234,56 €" vs "1,234.56 €").
     ep = item.get("extracted_price")
     if ep is not None:
         try:
@@ -74,7 +74,7 @@ def _sa_item_to_scraped(
         except (ValueError, TypeError):
             reviews = None
 
-    # Scarta i thumbnail base64 (data URI) — sono enormi e inutili per l'analisi
+    # Discard base64 thumbnails (data URIs) — they are huge and useless for the analysis
     raw_thumb = item.get("thumbnail", "") or ""
     image_url = "" if raw_thumb.startswith("data:") else raw_thumb
 
@@ -105,7 +105,7 @@ async def _run_single_query_sa(
     spec: QuerySpec,
     semaphore: asyncio.Semaphore,
 ) -> QueryResult:
-    """Esegue una singola query su ScraperAPI con semaforo di concorrenza."""
+    """Runs a single query on ScraperAPI with a concurrency semaphore."""
     async with semaphore:
         t0 = time.monotonic()
         run_id = f"sa_{spec.query_id}_{int(t0 * 1000)}"
@@ -132,8 +132,8 @@ async def _run_single_query_sa(
 
             RAW_DUMP_DIR.mkdir(exist_ok=True)
             dump_path = RAW_DUMP_DIR / f"{run_id}_raw.json"
-            # Rimuovi thumbnail base64 dal dump — riducono la leggibilità senza
-            # aggiungere valore analitico (i data URI possono pesare centinaia di KB ciascuno).
+            # Remove base64 thumbnails from the dump — they reduce readability without
+            # adding analytical value (data URIs can weigh hundreds of KB each).
             clean_items = [
                 {k: v for k, v in it.items()
                  if not (k == "thumbnail" and isinstance(v, str) and v.startswith("data:"))}
@@ -176,12 +176,12 @@ async def run_pipeline_sa(
     concurrency: int = 5,
 ) -> list[QueryResult]:
     """
-    Esegue una lista di QuerySpec via ScraperAPI.
+    Runs a list of QuerySpec via ScraperAPI.
 
     Args:
-        queries:     lista di query già caricate dal CSV
-        api_key:     chiave ScraperAPI
-        concurrency: richieste parallele (ScraperAPI regge bene 5-10)
+        queries:     list of queries already loaded from the CSV
+        api_key:     ScraperAPI key
+        concurrency: parallel requests (ScraperAPI handles 5-10 well)
     """
     semaphore = asyncio.Semaphore(concurrency)
 
@@ -196,25 +196,25 @@ async def run_pipeline_sa(
 
 
 def print_pipeline_report(results: list[QueryResult], label: str = "ScraperAPI") -> None:
-    """Stampa il report sintetico di una pipeline run."""
+    """Prints the summary report of a pipeline run."""
     ok = [r for r in results if r.error is None]
     ko = [r for r in results if r.error is not None]
     total_items = sum(len(r.items) for r in ok)
     partial = [r for r in ok if r.items and len(r.items) < r.spec.max_results]
 
     print(f"\n{'='*60}")
-    print(f"[{label}] ✅ Completate: {len(ok)}/{len(results)}")
-    print(f"[{label}] ❌ Fallite:    {len(ko)}")
-    print(f"[{label}] 📦 Prodotti:   {total_items}")
+    print(f"[{label}] ✅ Completed: {len(ok)}/{len(results)}")
+    print(f"[{label}] ❌ Failed:     {len(ko)}")
+    print(f"[{label}] 📦 Products:   {total_items}")
     if ok:
         avg = sum(r.duration_s for r in ok) / len(ok)
-        print(f"[{label}] ⏱  Tempo medio: {avg:.1f}s per query")
+        print(f"[{label}] ⏱  Average time: {avg:.1f}s per query")
 
     for r in ko:
         print(f"   [FAIL] {r.spec.query_id} '{r.spec.keyword}': {r.error}")
 
     if partial:
-        print(f"\n⚠ Risultati parziali ({len(partial)} query):")
+        print(f"\n⚠ Partial results ({len(partial)} queries):")
         for r in partial:
             print(
                 f"   [{r.spec.language}] '{r.spec.keyword}': "

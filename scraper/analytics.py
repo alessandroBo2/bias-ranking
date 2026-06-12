@@ -1,9 +1,9 @@
 """
-analytics.py — Export Parquet + dashboard interattiva Plotly.
+analytics.py — Parquet export + interactive Plotly dashboard.
 
 Uso:
-    python analytics.py                  # dashboard completa
-    python analytics.py --export-only    # solo export Parquet
+    python analytics.py                  # full dashboard
+    python analytics.py --export-only    # Parquet export only
 """
 from __future__ import annotations
 
@@ -23,13 +23,13 @@ OUTPUT_DIR = Path("output")
 
 
 def load_dataframe(db_path: Path = DB_PATH) -> pd.DataFrame:
-    """Carica tutti i prodotti dal DB in un DataFrame."""
+    """Loads all products from the DB into a DataFrame."""
     conn = sqlite3.connect(str(db_path))
     df = pd.read_sql_query("SELECT * FROM products", conn)
     conn.close()
 
     if df.empty:
-        print("⚠ Database vuoto. Esegui prima la pipeline.")
+        print("⚠ Empty database. Run the pipeline first.")
         return df
 
     df["scraped_at"] = pd.to_datetime(df["scraped_at"], utc=True, errors="coerce")
@@ -38,18 +38,18 @@ def load_dataframe(db_path: Path = DB_PATH) -> pd.DataFrame:
 
 def export_parquet(df: pd.DataFrame, path: Path | None = None,
                    run_ts: str | None = None) -> Path:
-    """Esporta il DataFrame in formato Parquet."""
+    """Exports the DataFrame in Parquet format."""
     OUTPUT_DIR.mkdir(exist_ok=True)
     if path is None:
         ts = run_ts or datetime.now().strftime("%Y%m%d_%H%M")
         path = OUTPUT_DIR / f"results_{ts}.parquet"
     df.to_parquet(path, index=False, engine="pyarrow")
-    print(f"📁 Parquet esportato: {path} ({len(df)} righe)")
+    print(f"📁 Parquet exported: {path} ({len(df)} rows)")
     return path
 
 
 def build_dashboard(df: pd.DataFrame, run_ts: str | None = None) -> Path | None:
-    """Genera una dashboard HTML interattiva con Plotly. Ritorna il path HTML."""
+    """Generates an interactive HTML dashboard with Plotly. Returns the HTML path."""
     if df.empty:
         return None
 
@@ -71,7 +71,7 @@ def build_dashboard(df: pd.DataFrame, run_ts: str | None = None) -> Path | None:
         horizontal_spacing=0.10,
     )
 
-    # 1. Box plot prezzi per category_l1
+    # 1. Box plot of prices by category_l1
     if not df_priced.empty:
         for cat in df_priced["category_l1"].unique():
             subset = df_priced[df_priced["category_l1"] == cat]
@@ -80,7 +80,7 @@ def build_dashboard(df: pd.DataFrame, run_ts: str | None = None) -> Path | None:
                 row=1, col=1,
             )
 
-    # 2. Bar chart: prodotti per category_l1
+    # 2. Bar chart: products by category_l1
     counts = df.groupby("category_l1").size().sort_values(ascending=True)
     fig.add_trace(
         go.Bar(
@@ -90,7 +90,7 @@ def build_dashboard(df: pd.DataFrame, run_ts: str | None = None) -> Path | None:
         row=1, col=2,
     )
 
-    # 3. Top 15 seller
+    # 3. Top 15 sellers
     seller_counts = (
         df[df["seller"] != ""]
         .groupby("seller").size()
@@ -104,7 +104,7 @@ def build_dashboard(df: pd.DataFrame, run_ts: str | None = None) -> Path | None:
         row=2, col=1,
     )
 
-    # 4. Prezzo medio per category_l2 (top 15)
+    # 4. Average price by category_l2 (top 15)
     if not df_priced.empty:
         avg_price = (
             df_priced.groupby("category_l2")["price_value"]
@@ -131,7 +131,7 @@ def build_dashboard(df: pd.DataFrame, run_ts: str | None = None) -> Path | None:
                     row=3, col=1,
                 )
 
-    # 6. Istogramma prezzi globale
+    # 6. Global price histogram
     if not df_priced.empty:
         fig.add_trace(
             go.Histogram(
@@ -158,13 +158,13 @@ def build_dashboard(df: pd.DataFrame, run_ts: str | None = None) -> Path | None:
         fig.write_image(str(png_path), scale=2)
         print(f"🖼  Dashboard PNG: {png_path}")
     except Exception:
-        print("ℹ  Export PNG saltato (installa kaleido per abilitarlo)")
+        print("ℹ  PNG export skipped (install kaleido to enable it)")
 
     return html_path
 
 
 def print_summary(df: pd.DataFrame) -> None:
-    """Stampa un riepilogo testuale."""
+    """Prints a textual summary."""
     if df.empty:
         return
 
@@ -201,7 +201,7 @@ def print_summary(df: pd.DataFrame) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Analytics prodotti")
+    parser = argparse.ArgumentParser(description="Product analytics")
     parser.add_argument("--export-only", action="store_true")
     parser.add_argument("--db", type=Path, default=DB_PATH)
     args = parser.parse_args()

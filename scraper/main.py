@@ -1,18 +1,18 @@
 """
-main.py — Entrypoint del product scraper.
+main.py — Entry point of the product scraper.
 
 Uso:
-    # Pipeline da CSV (default: lingua IT)
+    # Pipeline from CSV (default: IT language)
     python main.py scrape queries_pilot_100.csv
     python main.py scrape queries_pilot_100.csv --lang EN
     python main.py scrape queries_pilot_100.csv --lang DE --concurrency 5
 
-    # Analytics sui dati raccolti
+    # Analytics on the collected data
     python main.py analytics
     python main.py analytics --export-only
 
-    # Orchestratore Claude (linguaggio naturale)
-    python main.py ask "Cerco un SSD NVMe 2TB sotto 150€"
+    # Claude orchestrator (natural language)
+    python main.py ask "Looking for a 2TB NVMe SSD under 150€"
     python main.py ask --interactive
 """
 from __future__ import annotations
@@ -26,7 +26,7 @@ from dotenv import load_dotenv
 
 
 def cmd_scrape(args: argparse.Namespace) -> None:
-    """Esegue la pipeline di scraping da CSV."""
+    """Runs the scraping pipeline from CSV."""
     from pipeline import run_pipeline
     from storage import init_db, save_items
 
@@ -35,13 +35,13 @@ def cmd_scrape(args: argparse.Namespace) -> None:
     backend = args.backend
 
     if backend == "scraperapi" and not scraperapi_key:
-        print("❌ SCRAPERAPI_KEY mancante nel .env (richiesta per --backend scraperapi)")
+        print("❌ SCRAPERAPI_KEY missing in .env (required for --backend scraperapi)")
         sys.exit(1)
     if backend == "apify" and not apify_token:
-        print("❌ APIFY_TOKEN mancante nel .env")
+        print("❌ APIFY_TOKEN missing in .env")
         sys.exit(1)
     if not apify_token and not scraperapi_key:
-        print("❌ Nessun token trovato nel .env (APIFY_TOKEN o SCRAPERAPI_KEY)")
+        print("❌ No token found in .env (APIFY_TOKEN or SCRAPERAPI_KEY)")
         sys.exit(1)
 
     async def _run():
@@ -63,14 +63,14 @@ def cmd_scrape(args: argparse.Namespace) -> None:
                 total += n
         conn.close()
 
-        print(f"\n💾 {total} prodotti salvati in results.db")
-        print("   Esegui 'python main.py analytics' per i grafici.")
+        print(f"\n💾 {total} products saved to results.db")
+        print("   Run 'python main.py analytics' for the charts.")
 
     asyncio.run(_run())
 
 
 def cmd_analytics(args: argparse.Namespace) -> None:
-    """Genera analytics e dashboard."""
+    """Generates analytics and dashboard."""
     import webbrowser
     from datetime import datetime
     from analytics import load_dataframe, export_parquet, print_summary, build_dashboard
@@ -90,14 +90,14 @@ def cmd_analytics(args: argparse.Namespace) -> None:
 
 
 def cmd_ask(args: argparse.Namespace) -> None:
-    """Orchestratore Claude: NL → query → scraping → analisi."""
+    """Claude orchestrator: NL → query → scraping → analysis."""
     from orchestrator import orchestrate, interactive_mode
 
     apify_token = os.environ.get("APIFY_TOKEN", "")
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
 
     if not apify_token:
-        print("❌ APIFY_TOKEN mancante nel .env")
+        print("❌ APIFY_TOKEN missing in .env")
         sys.exit(1)
 
     if args.interactive:
@@ -109,23 +109,23 @@ def cmd_ask(args: argparse.Namespace) -> None:
         )
         print(f"\n{report}")
     else:
-        print("Specifica una query o usa --interactive")
+        print("Specify a query or use --interactive")
 
 
 def cmd_wizard(args: argparse.Namespace) -> None:
-    """Pipeline guidata interattiva per studenti."""
+    """Interactive guided pipeline for students."""
     from wizard import run
     run()
 
 
 def cmd_gui(args: argparse.Namespace) -> None:
-    """Mini GUI tkinter per wizard ed explorer."""
+    """Minimal tkinter GUI for wizard and explorer."""
     from gui import launch
     launch()
 
 
 def cmd_explore(args: argparse.Namespace) -> None:
-    """Esplora results.db via terminale."""
+    """Explores results.db from the terminal."""
     from explore import explore
     explore(
         lang=args.lang,
@@ -137,7 +137,7 @@ def cmd_explore(args: argparse.Namespace) -> None:
 
 
 def cmd_bias(args: argparse.Namespace) -> None:
-    """Analisi di sbilanciamento Google Shopping."""
+    """Google Shopping imbalance analysis."""
     import webbrowser
     from datetime import datetime
     from bias_analysis import (
@@ -166,39 +166,39 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(
         prog="product_scraper",
-        description="Pipeline scraping prodotti: Apify + analytics + Claude orchestrator",
+        description="Product scraping pipeline: Apify + analytics + Claude orchestrator",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # --- scrape ---
-    p_scrape = subparsers.add_parser("scrape", help="Scraping da CSV multilingua")
-    p_scrape.add_argument("csv", help="Percorso al CSV delle query")
+    p_scrape = subparsers.add_parser("scrape", help="Scraping from a multilingual CSV")
+    p_scrape.add_argument("csv", help="Path to the queries CSV")
     p_scrape.add_argument(
         "--lang", "-l", default="IT", choices=["IT", "EN", "DE"],
-        help="Lingua da usare: IT | EN | DE (default: IT)",
+        help="Language to use: IT | EN | DE (default: IT)",
     )
     p_scrape.add_argument(
         "--concurrency", "-c", type=int, default=3,
-        help="Query parallele (default: 3)",
+        help="Parallel queries (default: 3)",
     )
     p_scrape.add_argument(
         "--max-results", "-m", type=int, default=20,
-        help="Risultati per query (default: 20)",
+        help="Results per query (default: 20)",
     )
     p_scrape.add_argument(
         "--backend", "-b", default="scraperapi", choices=["apify", "scraperapi"],
-        help="Backend scraping: scraperapi (default) | apify",
+        help="Scraping backend: scraperapi (default) | apify",
     )
     p_scrape.set_defaults(func=cmd_scrape)
 
     # --- analytics ---
-    p_analytics = subparsers.add_parser("analytics", help="Dashboard e analytics")
+    p_analytics = subparsers.add_parser("analytics", help="Dashboard and analytics")
     p_analytics.add_argument("--export-only", action="store_true")
     p_analytics.set_defaults(func=cmd_analytics)
 
     # --- ask ---
-    p_ask = subparsers.add_parser("ask", help="Chiedi a Claude (orchestratore)")
-    p_ask.add_argument("query", nargs="?", help="Cosa cerchi (linguaggio naturale)")
+    p_ask = subparsers.add_parser("ask", help="Ask Claude (orchestrator)")
+    p_ask.add_argument("query", nargs="?", help="What you are looking for (natural language)")
     p_ask.add_argument("--interactive", "-i", action="store_true")
     p_ask.add_argument("--concurrency", "-c", type=int, default=3)
     p_ask.set_defaults(func=cmd_ask)
@@ -206,28 +206,28 @@ def main() -> None:
     # --- wizard ---
     p_wiz = subparsers.add_parser(
         "wizard",
-        help="Pipeline guidata interattiva (consigliato per iniziare)",
+        help="Interactive guided pipeline (recommended to start)",
     )
     p_wiz.set_defaults(func=cmd_wizard)
 
     # --- explore ---
-    p_exp = subparsers.add_parser("explore", help="Esplora results.db via terminale")
-    p_exp.add_argument("--lang", "-l", help="Filtra per lingua (IT|EN|DE)")
-    p_exp.add_argument("--cat", "-c", help="Filtra per categoria L1")
-    p_exp.add_argument("--keyword", "-k", help="Dettaglio prezzi per una keyword")
-    p_exp.add_argument("--runs", action="store_true", help="Lista run Apify")
-    p_exp.add_argument("--sample", "-s", type=int, metavar="N", help="Mostra N prodotti casuali")
+    p_exp = subparsers.add_parser("explore", help="Explore results.db from the terminal")
+    p_exp.add_argument("--lang", "-l", help="Filter by language (IT|EN|DE)")
+    p_exp.add_argument("--cat", "-c", help="Filter by L1 category")
+    p_exp.add_argument("--keyword", "-k", help="Price detail for a keyword")
+    p_exp.add_argument("--runs", action="store_true", help="List Apify runs")
+    p_exp.add_argument("--sample", "-s", type=int, metavar="N", help="Show N random products")
     p_exp.set_defaults(func=cmd_explore)
 
     # --- gui ---
-    p_gui = subparsers.add_parser("gui", help="Mini GUI per wizard ed explorer")
+    p_gui = subparsers.add_parser("gui", help="Minimal GUI for wizard and explorer")
     p_gui.set_defaults(func=cmd_gui)
 
     # --- bias ---
-    p_bias = subparsers.add_parser("bias", help="Analisi sbilanciamento Google Shopping")
+    p_bias = subparsers.add_parser("bias", help="Google Shopping imbalance analysis")
     p_bias.add_argument(
         "--format", "-f", choices=["text", "html", "csv", "all"], default="all",
-        help="Formato output (default: all)",
+        help="Output format (default: all)",
     )
     p_bias.set_defaults(func=cmd_bias)
 

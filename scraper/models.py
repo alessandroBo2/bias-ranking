@@ -1,7 +1,7 @@
 """
-models.py — Dataclass per query, risultati e item scraped.
+models.py — Dataclasses for queries, results, and scraped items.
 
-Supporta il formato CSV multilingua:
+Supports the multilingual CSV format:
     query_id, category_l1, category_l2, query_type, Query_EN, Query_IT, Query_DE
 """
 from __future__ import annotations
@@ -21,7 +21,7 @@ LANG_TO_COUNTRY = {
 
 @dataclass
 class QuerySpec:
-    """Specifica di una singola query letta dal CSV multilingua."""
+    """Specification of a single query read from the multilingual CSV."""
     query_id: str
     keyword: str
     country: str = "IT"
@@ -34,7 +34,7 @@ class QuerySpec:
 
 @dataclass
 class ScrapedItem:
-    """Singolo prodotto estratto da Google Shopping."""
+    """A single product extracted from Google Shopping."""
     query_id: str
     keyword: str
     language: str
@@ -59,7 +59,7 @@ class ScrapedItem:
 
 @dataclass
 class QueryResult:
-    """Risultato aggregato di una query."""
+    """Aggregated result of a query."""
     spec: QuerySpec
     items: list[ScrapedItem]
     run_id: str
@@ -68,7 +68,7 @@ class QueryResult:
 
 
 def parse_price(raw: str) -> tuple[float | None, str]:
-    """Estrae valore numerico e valuta da stringa prezzo grezza."""
+    """Extracts the numeric value and currency from a raw price string."""
     if not raw:
         return None, ""
     raw = raw.replace("\xa0", " ").strip()
@@ -105,11 +105,11 @@ def raw_item_to_scraped(
     position: int,
     run_id: str,
 ) -> ScrapedItem:
-    """Converte un item grezzo Apify → ScrapedItem normalizzato."""
+    """Converts a raw Apify item → normalized ScrapedItem."""
     price_raw = raw.get("price", "") or ""
     price_value, currency = parse_price(price_raw)
 
-    # Rating: burbn usa "productRating", schema legacy "rating"
+    # Rating: burbn uses "productRating", legacy schema "rating"
     rating = raw.get("productRating", raw.get("rating"))
     if rating is not None:
         try:
@@ -117,7 +117,7 @@ def raw_item_to_scraped(
         except (ValueError, TypeError):
             rating = None
 
-    # Reviews: burbn usa "productNumReviews"
+    # Reviews: burbn uses "productNumReviews"
     reviews = (
         raw.get("productNumReviews")
         or raw.get("reviewsCount")
@@ -129,7 +129,7 @@ def raw_item_to_scraped(
         except (ValueError, TypeError):
             reviews = None
 
-    # Image: burbn restituisce "productPhotos" come lista
+    # Image: burbn returns "productPhotos" as a list
     image_url = ""
     photos = raw.get("productPhotos")
     if isinstance(photos, list) and photos:

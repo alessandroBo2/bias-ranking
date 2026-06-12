@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 """
-validate_serpapi.py — Validazione a costo ~zero (free plan) di SerpApi per l'audit.
+validate_serpapi.py — ~zero-cost validation (free plan) of SerpApi for the audit.
 
-google_shopping  -> risultati ORGANICI dello Shopping tab (product_id, rating, source...).
-google + location -> per scoprire gli SPONSORIZZATI: PLA shopping (shopping_results/
-                     immersive_products) e text ads (ads). Senza `location`/`google_domain`
-                     Google non serve gli ads -> per questo prima tornava 0.
+google_shopping  -> ORGANIC results of the Shopping tab (product_id, rating, source...).
+google + location -> to discover the SPONSORED ones: PLA shopping (shopping_results/
+                     immersive_products) and text ads (ads). Without `location`/`google_domain`
+                     Google doesn't serve ads -> that's why it previously returned 0.
 
-Stampa la copertura dei campi e SALVA i grezzi in validation_samples/.
-Poche chiamate: 1/keyword su google_shopping (+1 con --with-search).
+Prints field coverage and SAVES the raw responses in validation_samples/.
+Few calls: 1/keyword on google_shopping (+1 with --with-search).
 
-Uso:
+Usage:
     python validate_serpapi.py
-    python validate_serpapi.py --with-search           # interroga anche 'google' con location
+    python validate_serpapi.py --with-search           # also query 'google' with location
     python validate_serpapi.py --kw smartphone --locale IT --with-search
 """
 from __future__ import annotations
@@ -27,7 +27,7 @@ DEFAULT_KEYWORDS = {
     "DE": ["laufschuhe", "waschmaschine", "smartphone"],
     "EN": ["running shoes", "washing machine", "smartphone"],
 }
-LOCALE_PARAMS = {  # gl=paese, hl=lingua, google_domain, location (city-level, consigliata da SerpApi)
+LOCALE_PARAMS = {  # gl=country, hl=language, google_domain, location (city-level, recommended by SerpApi)
     "IT": {"gl": "it", "hl": "it", "google_domain": "google.it", "location": "Milan, Lombardy, Italy"},
     "DE": {"gl": "de", "hl": "de", "google_domain": "google.de", "location": "Berlin, Germany"},
     "EN": {"gl": "us", "hl": "en", "google_domain": "google.com", "location": "New York, NY, United States"},
@@ -43,7 +43,7 @@ def load_api_key() -> str:
             if line.startswith("SERPAPI_KEY") and "=" in line:
                 key = line.split("=", 1)[1].strip().strip('"').strip("'"); break
     if not key:
-        sys.exit("SERPAPI_KEY mancante. Mettila in .env (SERPAPI_KEY=...) o esportala.")
+        sys.exit("SERPAPI_KEY missing. Put it in .env (SERPAPI_KEY=...) or export it.")
     return key
 
 
@@ -51,7 +51,7 @@ def fetch(engine: str, keyword: str, locale: str, api_key: str, with_location: b
     p = LOCALE_PARAMS.get(locale, LOCALE_PARAMS["IT"])
     params = {"engine": engine, "q": keyword, "api_key": api_key,
               "gl": p["gl"], "hl": p["hl"], "google_domain": p["google_domain"]}
-    if with_location:                     # location serve all'engine 'google' per far comparire gli ads
+    if with_location:                     # location is needed by the 'google' engine to make ads appear
         params["location"] = p["location"]
     url = ENDPOINT + "?" + urllib.parse.urlencode(params)
     req = urllib.request.Request(url, headers={"User-Agent": "bias-ranking-validator/1.0"})
@@ -81,21 +81,21 @@ def analyze_shopping(data: dict) -> dict:
 def report_shopping(title: str, r: dict) -> None:
     print(f"\n  {title}")
     if r["n"] == 0:
-        print("    nessun shopping_results (controlla locale/quota)"); return
+        print("    no shopping_results (check locale/quota)"); return
     n = r["n"]; pct = lambda k: f"{r['cov'][k]/n*100:5.1f}%"
     print(f"    items: {n}  | product_id {pct('product_id')} rating {pct('rating')} "
           f"source {pct('source')} delivery {pct('delivery')}")
-    print(f"    tag {pct('tag')} badge {pct('badge')} -> sponsorizzati(marker): {r['sponsored']}/{n}")
-    if r["tags"]: print(f"    esempi tag/badge: {r['tags']}")
+    print(f"    tag {pct('tag')} badge {pct('badge')} -> sponsored(marker): {r['sponsored']}/{n}")
+    if r["tags"]: print(f"    tag/badge examples: {r['tags']}")
 
 
 def inspect_google(g: dict) -> dict:
-    """Cerca gli ADS nell'engine 'google' e verifica se gli item sono DAVVERO sponsorizzati."""
+    """Looks for ADS in the 'google' engine and checks whether the items are REALLY sponsored."""
     blocks = {k: len(g.get(k) or []) for k in
               ["shopping_results", "immersive_products", "ads", "product_results"]}
     relevant = [k for k in g.keys()
                 if any(s in k.lower() for s in ("shopping", "ads", "product", "immersive"))]
-    # cerca marker sponsorizzati DENTRO gli item, e raccogli le chiavi di un item campione
+    # look for sponsored markers INSIDE the items, and collect the keys of a sample item
     pool = (g.get("immersive_products") or []) + (g.get("shopping_results") or []) + (g.get("ads") or [])
     marked = 0; sample_keys = []
     for it in pool:
@@ -129,7 +129,7 @@ def main():
             try:
                 d = fetch("google_shopping", kw, loc, api_key, with_location=True); calls += 1
             except Exception as e:
-                print(f"  '{kw}' -> errore: {type(e).__name__}: {e}"); continue
+                print(f"  '{kw}' -> error: {type(e).__name__}: {e}"); continue
             (SAMPLES_DIR / f"shopping_{loc}_{kw.replace(' ','_')}.json").write_text(
                 json.dumps(d, ensure_ascii=False, indent=2), encoding="utf-8")
             r = analyze_shopping(d)
@@ -147,20 +147,20 @@ def main():
                     b = gi["blocks"]
                     print(f"    [google +location] shopping_results={b['shopping_results']} "
                           f"immersive_products={b['immersive_products']} ads(text)={b['ads']}")
-                    print(f"      marker 'Sponsored' negli item: {gi['marked_sponsored']} | "
-                          f"chiavi item: {gi['sample_item_keys'][:14]}")
-                    spons |= gi["marked_sponsored"] > 0   # solo marker REALE, non semplice presenza
+                    print(f"      'Sponsored' marker in the items: {gi['marked_sponsored']} | "
+                          f"item keys: {gi['sample_item_keys'][:14]}")
+                    spons |= gi["marked_sponsored"] > 0   # only a REAL marker, not mere presence
                 except Exception as e:
-                    print(f"    [google] errore: {type(e).__name__}: {e}")
+                    print(f"    [google] error: {type(e).__name__}: {e}")
         verdict[loc] = {"sponsored": spons, "product_id": pid, "rating": rat}
 
-    print(f"\n{'='*64}\n  VERDETTO  (chiamate: {calls})\n{'='*64}")
+    print(f"\n{'='*64}\n  VERDICT  (calls: {calls})\n{'='*64}")
     ok = lambda b: "OK " if b else "-- "
     for loc, v in verdict.items():
-        print(f"  {loc}:  sponsorizzato {ok(v['sponsored'])}  product_id {ok(v['product_id'])}  "
+        print(f"  {loc}:  sponsored {ok(v['sponsored'])}  product_id {ok(v['product_id'])}  "
               f"rating {ok(v['rating'])}")
-    print("\n  Grezzi in validation_samples/. Se 'sponsorizzato' resta a -- anche con --with-search,")
-    print("  apri un search_*.json e guarda 'chiavi rilevanti' per capire dove Google mette gli ads.")
+    print("\n  Raw responses in validation_samples/. If 'sponsored' stays at -- even with --with-search,")
+    print("  open a search_*.json and look at 'relevant keys' to see where Google puts the ads.")
 
 
 if __name__ == "__main__":

@@ -1,9 +1,9 @@
 # Product Scraper
 
-Pipeline di scraping prodotti da Google Shopping via Apify, con analytics
-Plotly e orchestratore Claude.
+A product scraping pipeline for Google Shopping via Apify, with Plotly analytics
+and a Claude orchestrator.
 
-## Architettura
+## Architecture
 
 ```
 queries_pilot_100.csv ──► pipeline.py ──► Apify Google Shopping
@@ -16,105 +16,105 @@ queries_5000.csv                                │
                                         analytics.py ──► output/dashboard.html
                                                          output/results.parquet
 
-orchestrator.py ──► Claude genera query ──► pipeline ──► Claude analizza
+orchestrator.py ──► Claude generates queries ──► pipeline ──► Claude analyzes
                                                          output/report.md
 ```
 
 ## Setup
 
 ```bash
-# 1. Installa dipendenze
+# 1. Install dependencies
 pip install -r requirements.txt
 
-# 2. Configura le chiavi API
+# 2. Configure the API keys
 cp .env.template .env
-# Edita .env:
+# Edit .env:
 #   APIFY_TOKEN=apify_api_...
 #   ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-## Formato CSV
+## CSV format
 
-Il CSV deve avere queste colonne:
+The CSV must have these columns:
 
 ```
 query_id,category_l1,category_l2,query_type,Query_EN,Query_IT,Query_DE
 ```
 
-Il flag `--lang` seleziona quale colonna usare come keyword.
+The `--lang` flag selects which column to use as the keyword.
 
-## Uso
+## Usage
 
-### 0. GUI grafica (consigliato per chi inizia)
+### 0. Graphical GUI (recommended for beginners)
 
 ```bash
 python main.py gui
 ```
 
-Apre una finestra con due tab:
-- **Wizard** — avvia la pipeline guidata in un terminale separato; pulsanti rapidi per
-  rieseguire solo Analytics o Bias sui dati già in DB.
-- **Explorer** — form con filtri (lingua, categoria, keyword, campione) e output inline.
-  Pulsanti per aprire le dashboard HTML nel browser.
+Opens a window with two tabs:
+- **Wizard** — launches the guided pipeline in a separate terminal; quick buttons to
+  re-run only Analytics or Bias on the data already in the DB.
+- **Explorer** — form with filters (language, category, keyword, sample) and inline output.
+  Buttons to open the HTML dashboards in the browser.
 
-Richiede solo Python standard (tkinter incluso). Zero dipendenze extra.
+Requires only standard Python (tkinter included). Zero extra dependencies.
 
-### 0b. Pipeline guidata da terminale
+### 0b. Guided pipeline from the terminal
 
 ```bash
 python main.py wizard
 ```
 
-Versione terminale del wizard, identica nel flusso ma interattiva via `input()`.
+Terminal version of the wizard, identical in flow but interactive via `input()`.
 
-### 1. Test pilota (100 query, scelta avanzata)
+### 1. Pilot test (100 queries, advanced choice)
 
 ```bash
-# Solo italiano
+# Italian only
 python main.py scrape queries_pilot_100.csv --lang IT
 
-# Tedesco, con 5 query parallele
+# German, with 5 parallel queries
 python main.py scrape queries_pilot_100.csv --lang DE --concurrency 5
 
-# Inglese, max 10 risultati per query (risparmia crediti)
+# English, max 10 results per query (saves credits)
 python main.py scrape queries_pilot_100.csv --lang EN --max-results 10
 ```
 
-### 2. Run completo (5000 query)
+### 2. Full run (5000 queries)
 
 ```bash
-# ATTENZIONE: 5000 query consumano crediti Apify significativi.
-# Stima: ~$15-40 su piano Starter, dipende dai risultati per query.
+# WARNING: 5000 queries consume significant Apify credits.
+# Estimate: ~$15-40 on the Starter plan, depending on results per query.
 python main.py scrape queries_5000.csv --lang IT --concurrency 5
 ```
 
 ### 3. Analytics
 
 ```bash
-# Dashboard interattiva + Parquet + riepilogo
+# Interactive dashboard + Parquet + summary
 python main.py analytics
 
-# Solo export Parquet (per DuckDB, Polars, ecc.)
+# Parquet export only (for DuckDB, Polars, etc.)
 python main.py analytics --export-only
 ```
 
-### 4. Analisi bias (sbilanciamento Google Shopping)
+### 4. Bias analysis (Google Shopping imbalance)
 
 ```bash
-# Report completo: testo + dashboard HTML + metriche CSV
+# Full report: text + HTML dashboard + CSV metrics
 python main.py bias
 
-# Solo report testuale a terminale
+# Text report in the terminal only
 python main.py bias --format text
 
-# Solo dashboard HTML interattiva
+# Interactive HTML dashboard only
 python main.py bias --format html
 
-# Solo export metriche CSV (per Excel, DuckDB, ecc.)
+# CSV metrics export only (for Excel, DuckDB, etc.)
 python main.py bias --format csv
 ```
 
-Per il confronto cross-lingua, esegui lo scraping in più lingue prima:
+For the cross-language comparison, run the scraping in multiple languages first:
 ```bash
 python main.py scrape queries_pilot_100.csv --lang IT
 python main.py scrape queries_pilot_100.csv --lang EN
@@ -122,92 +122,92 @@ python main.py scrape queries_pilot_100.csv --lang DE
 python main.py bias
 ```
 
-### 5. Esplorazione database
+### 5. Database exploration
 
 ```bash
-# Panoramica completa: prodotti, lingue, categorie, seller
+# Full overview: products, languages, categories, sellers
 python main.py explore
 
-# Filtra per lingua o categoria
+# Filter by language or category
 python main.py explore --lang IT
 python main.py explore --cat "Electronics"
 
-# Dettaglio prezzi cross-lingua per una keyword specifica
-python main.py explore --keyword "mountain bike economici"
+# Cross-language price detail for a specific keyword
+python main.py explore --keyword "cheap mountain bikes"
 
-# Lista run Apify con timestamp
+# List Apify runs with timestamps
 python main.py explore --runs
 
-# Campione casuale di prodotti
+# Random sample of products
 python main.py explore --sample 30
 ```
 
-### 6. Orchestratore Claude (linguaggio naturale)
+### 6. Claude orchestrator (natural language)
 
 ```bash
-# Query singola — Claude genera le query, le esegue, analizza i risultati
-python main.py ask "Cerco un notebook gaming sotto 1500€ con RTX 4070"
+# Single query — Claude generates the queries, runs them, analyzes the results
+python main.py ask "Looking for a gaming laptop under 1500€ with an RTX 4070"
 
-# Modalità interattiva
+# Interactive mode
 python main.py ask --interactive
 ```
 
-## Struttura file
+## File structure
 
 ```
 product_scraper/
-├── .env.template          # Template chiavi API
-├── requirements.txt       # Dipendenze Python
-├── main.py                # Entrypoint CLI
-├── models.py              # Dataclass e parsing
+├── .env.template          # API keys template
+├── requirements.txt       # Python dependencies
+├── main.py                # CLI entry point
+├── models.py              # Dataclasses and parsing
 ├── pipeline.py            # CSV → Apify → QueryResult
 ├── storage.py             # SQLite + JSONL
-├── analytics.py           # Parquet + dashboard Plotly
-├── bias_analysis.py       # Analisi sbilanciamento Google Shopping
+├── analytics.py           # Parquet + Plotly dashboard
+├── bias_analysis.py       # Google Shopping imbalance analysis
 ├── orchestrator.py        # Claude NL orchestrator
-├── wizard.py              # Pipeline guidata interattiva (main.py wizard)
-├── gui.py                 # Mini GUI tkinter (main.py gui)
-├── explore.py             # Esplorazione DB via terminale (main.py explore)
-├── extra_charts.py        # Dashboard cross-lingua + per categoria
-├── queries_pilot_100.csv  # Test pilota (100 query)
-└── queries_5000.csv       # Dataset completo (5000 query)
+├── wizard.py              # Interactive guided pipeline (main.py wizard)
+├── gui.py                 # Minimal tkinter GUI (main.py gui)
+├── explore.py             # DB exploration from the terminal (main.py explore)
+├── extra_charts.py        # Cross-language + per-category dashboard
+├── queries_pilot_100.csv  # Pilot test (100 queries)
+└── queries_5000.csv       # Full dataset (5000 queries)
 ```
 
-## Output generati
+## Generated output
 
 ```
 product_scraper/
-├── results.db               # Database SQLite
-├── raw/                     # JSONL grezzi per audit
+├── results.db               # SQLite database
+├── raw/                     # Raw JSONL for audit
 │   └── <run_id>.jsonl
 └── output/
-    ├── results.parquet      # Export colonnare
-    ├── dashboard.html       # Dashboard interattiva
-    ├── bias_dashboard.html  # Dashboard bias (6 grafici)
-    ├── bias_metrics.csv     # Metriche bias per query
-    └── report.md            # Report Claude (solo con 'ask')
+    ├── results.parquet      # Columnar export
+    ├── dashboard.html       # Interactive dashboard
+    ├── bias_dashboard.html  # Bias dashboard (6 charts)
+    ├── bias_metrics.csv     # Bias metrics per query
+    └── report.md            # Claude report (only with 'ask')
 ```
 
-## Uso con Claude Code
+## Use with Claude Code
 
-Lo studente può usare Claude Code per eseguire il progetto:
+The student can use Claude Code to run the project:
 
 ```bash
-# 1. Installa Claude Code (richiede Node.js ≥ 18)
+# 1. Install Claude Code (requires Node.js ≥ 18)
 npm install -g @anthropic-ai/claude-code
 
-# 2. Entra nella cartella del progetto
+# 2. Enter the project folder
 cd product_scraper
 
-# 3. Avvia Claude Code
+# 3. Start Claude Code
 claude
 
-# 4. Chiedi a Claude Code di eseguire
-> installa le dipendenze e fai un test con 10 query dal pilot
-> esegui lo scraping del pilot completo in italiano
-> genera la dashboard analytics
+# 4. Ask Claude Code to run it
+> install the dependencies and do a test with 10 queries from the pilot
+> run the full pilot scraping in Italian
+> generate the analytics dashboard
 ```
 
-Claude Code ha accesso diretto al filesystem e al terminale, quindi può
-installare dipendenze, eseguire la pipeline, vedere gli errori e correggerli
-in autonomia. L'unica cosa da fare prima è configurare il `.env` con i token.
+Claude Code has direct access to the filesystem and the terminal, so it can
+install dependencies, run the pipeline, see the errors and fix them
+on its own. The only thing to do first is to configure `.env` with the tokens.

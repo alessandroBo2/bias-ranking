@@ -1,6 +1,6 @@
 """
-extra_charts.py — Grafici aggiuntivi per analisi multilingua/multi-categoria.
-Esporta PNG via kaleido per ispezione veloce.
+extra_charts.py — Additional charts for multilingual/multi-category analysis.
+Exports PNG via kaleido for quick inspection.
 """
 from __future__ import annotations
 
@@ -28,19 +28,19 @@ def load() -> pd.DataFrame:
 
 
 def cross_lang_dashboard(df: pd.DataFrame) -> None:
-    """6-pannello focalizzato sul confronto cross-lingua dinamico."""
+    """6-panel view focused on the dynamic cross-language comparison."""
     df_p = df.dropna(subset=["price_value"])
     languages = sorted(df["language"].unique())
 
     fig = make_subplots(
         rows=3, cols=2,
         subplot_titles=(
-            "Distribuzione prezzi per lingua (boxplot)",
-            "Istogramma prezzi sovrapposti per lingua",
-            "Posizione vs prezzo (scatter, colorato per lingua)",
-            "Prezzo medio per categoria L2 × lingua (heatmap)",
-            "Top 5 prodotti più cari per lingua",
-            "Rating: distribuzione per lingua",
+            "Price distribution by language (boxplot)",
+            "Overlaid price histogram by language",
+            "Position vs price (scatter, colored by language)",
+            "Average price by L2 category × language (heatmap)",
+            "Top 5 most expensive products by language",
+            "Rating: distribution by language",
         ),
         vertical_spacing=0.10,
         horizontal_spacing=0.13,
@@ -51,7 +51,7 @@ def cross_lang_dashboard(df: pd.DataFrame) -> None:
         ],
     )
 
-    # 1. Boxplot prezzi per lingua
+    # 1. Price boxplot by language
     for lang in languages:
         sub = df_p[df_p["language"] == lang]
         fig.add_trace(
@@ -61,7 +61,7 @@ def cross_lang_dashboard(df: pd.DataFrame) -> None:
             row=1, col=1,
         )
 
-    # 2. Istogramma sovrapposto
+    # 2. Overlaid histogram
     for lang in languages:
         sub = df_p[df_p["language"] == lang]
         fig.add_trace(
@@ -72,7 +72,7 @@ def cross_lang_dashboard(df: pd.DataFrame) -> None:
         )
     fig.update_layout(barmode="overlay")
 
-    # 3. Scatter posizione vs prezzo (1 trace per lingua)
+    # 3. Position-vs-price scatter (1 trace per language)
     for lang in languages:
         sub = df_p[df_p["language"] == lang]
         fig.add_trace(
@@ -84,7 +84,7 @@ def cross_lang_dashboard(df: pd.DataFrame) -> None:
             row=2, col=1,
         )
 
-    # 4. Heatmap prezzo medio per categoria L2 × lingua
+    # 4. Average-price heatmap by L2 category × language
     pivot = (df_p.groupby(["category_l2", "language"])["price_value"]
              .mean().unstack().round(0))
     pivot = pivot.reindex(columns=languages)
@@ -101,7 +101,7 @@ def cross_lang_dashboard(df: pd.DataFrame) -> None:
         row=2, col=2,
     )
 
-    # 5. Top 5 prezzi alti per lingua (concatenati)
+    # 5. Top 5 high prices by language (concatenated)
     rows = []
     for lang in languages:
         top = df_p[df_p["language"] == lang].nlargest(5, "price_value")
@@ -124,7 +124,7 @@ def cross_lang_dashboard(df: pd.DataFrame) -> None:
             row=3, col=1,
         )
 
-    # 6. Boxplot rating per lingua
+    # 6. Rating boxplot by language
     for lang in languages:
         sub = df[(df["language"] == lang) & df["rating"].notna()]
         if len(sub) > 0:
@@ -135,18 +135,18 @@ def cross_lang_dashboard(df: pd.DataFrame) -> None:
                 row=3, col=2,
             )
 
-    fig.update_xaxes(title_text="€ prezzo", row=1, col=1)
-    fig.update_xaxes(title_text="€ prezzo", row=1, col=2)
-    fig.update_yaxes(title_text="conteggio", row=1, col=2)
-    fig.update_xaxes(title_text="posizione (1=top)", row=2, col=1)
-    fig.update_yaxes(title_text="€ prezzo", row=2, col=1)
-    fig.update_xaxes(title_text="€ prezzo", row=3, col=1)
+    fig.update_xaxes(title_text="€ price", row=1, col=1)
+    fig.update_xaxes(title_text="€ price", row=1, col=2)
+    fig.update_yaxes(title_text="count", row=1, col=2)
+    fig.update_xaxes(title_text="position (1=top)", row=2, col=1)
+    fig.update_yaxes(title_text="€ price", row=2, col=1)
+    fig.update_xaxes(title_text="€ price", row=3, col=1)
     fig.update_yaxes(title_text="rating (0-5)", row=3, col=2)
 
     fig.update_layout(
         height=1400, width=1500,
-        title_text=f"🌍 Confronto multilingua — {len(languages)} lingue, "
-                   f"{df['category_l2'].nunique()} categorie L2, {len(df)} prodotti",
+        title_text=f"🌍 Multilingual comparison — {len(languages)} languages, "
+                   f"{df['category_l2'].nunique()} L2 categories, {len(df)} products",
         title_x=0.5,
         template="plotly_white",
         margin=dict(l=80, r=80, t=120, b=60),
@@ -161,17 +161,17 @@ def cross_lang_dashboard(df: pd.DataFrame) -> None:
 
 
 def category_dashboard(df: pd.DataFrame) -> None:
-    """Confronto inter-categoria (Electronics vs Sporting Goods, ecc.)."""
+    """Inter-category comparison (Electronics vs Sporting Goods, etc.)."""
     df_p = df.dropna(subset=["price_value"])
     cats = sorted(df_p["category_l2"].unique())
 
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=(
-            "Distribuzione prezzi per categoria L2",
-            "Generic vs Branded — distribuzione prezzi",
-            "Top seller per categoria L2 (% share)",
-            "Coverage prezzo (% prodotti con prezzo) per categoria",
+            "Price distribution by L2 category",
+            "Generic vs Branded — price distribution",
+            "Top sellers by L2 category (% share)",
+            "Price coverage (% products with price) by category",
         ),
         vertical_spacing=0.13,
         horizontal_spacing=0.13,
@@ -181,7 +181,7 @@ def category_dashboard(df: pd.DataFrame) -> None:
         ],
     )
 
-    # 1. Boxplot per categoria L2
+    # 1. Boxplot by L2 category
     for cat in cats:
         sub = df_p[df_p["category_l2"] == cat]
         fig.add_trace(
@@ -200,7 +200,7 @@ def category_dashboard(df: pd.DataFrame) -> None:
                 row=1, col=2,
             )
 
-    # 3. Top seller per categoria (top 5 per ciascuna)
+    # 3. Top sellers by category (top 5 each)
     rows = []
     for cat in cats:
         sub = df[(df["category_l2"] == cat) & (df["seller"] != "")]
@@ -222,7 +222,7 @@ def category_dashboard(df: pd.DataFrame) -> None:
             row=2, col=1,
         )
 
-    # 4. Coverage prezzo per categoria
+    # 4. Price coverage by category
     cov = (df.groupby("category_l2")["price_value"]
            .apply(lambda x: x.notna().mean() * 100)
            .sort_values(ascending=True))
@@ -234,14 +234,14 @@ def category_dashboard(df: pd.DataFrame) -> None:
         row=2, col=2,
     )
 
-    fig.update_xaxes(title_text="€ prezzo", row=1, col=2)
-    fig.update_yaxes(title_text="conteggio", row=1, col=2)
-    fig.update_xaxes(title_text="% del totale categoria", row=2, col=1)
-    fig.update_xaxes(title_text="% prodotti con prezzo", row=2, col=2)
+    fig.update_xaxes(title_text="€ price", row=1, col=2)
+    fig.update_yaxes(title_text="count", row=1, col=2)
+    fig.update_xaxes(title_text="% of category total", row=2, col=1)
+    fig.update_xaxes(title_text="% products with price", row=2, col=2)
 
     fig.update_layout(
         height=1100, width=1500,
-        title_text="📦 Confronto inter-categoria",
+        title_text="📦 Inter-category comparison",
         title_x=0.5,
         template="plotly_white",
         barmode="overlay",
@@ -257,19 +257,19 @@ def category_dashboard(df: pd.DataFrame) -> None:
 
 
 def export_bias_png(df: pd.DataFrame) -> None:
-    """Salva la bias dashboard anche come PNG."""
+    """Also saves the bias dashboard as PNG."""
     df_priced = df.dropna(subset=["price_value"])
     df_with_seller = df[df["seller"] != ""]
 
     fig = make_subplots(
         rows=3, cols=2,
         subplot_titles=(
-            "Concentrazione seller (Lorenz curve)",
-            "Posizione media dei top seller (n>=3)",
-            "Distribuzione posizioni per top 5 seller",
-            "Diversità di prezzo per query (CoV)",
-            "Risultati per (query_id, lingua) per categoria",
-            "Seller in top-3 per frequenza",
+            "Seller concentration (Lorenz curve)",
+            "Average position of top sellers (n>=3)",
+            "Position distribution for top 5 sellers",
+            "Price diversity per query (CoV)",
+            "Results per (query_id, language) by category",
+            "Sellers in top-3 by frequency",
         ),
         vertical_spacing=0.10,
         horizontal_spacing=0.10,
@@ -286,7 +286,7 @@ def export_bias_png(df: pd.DataFrame) -> None:
                              line=dict(color="gray", dash="dash"),
                              showlegend=False), row=1, col=1)
 
-    # 2. Posizione media top seller
+    # 2. Average position of top sellers
     sp = df_with_seller.groupby("seller")["position"].agg(["mean", "count"])
     sp = sp[sp["count"] >= 3].nsmallest(15, "mean")
     fig.add_trace(go.Bar(x=sp["mean"].values, y=sp.index,
@@ -295,14 +295,14 @@ def export_bias_png(df: pd.DataFrame) -> None:
                          text=[f"{m:.1f}" for m in sp["mean"]],
                          textposition="auto"), row=1, col=2)
 
-    # 3. Boxplot posizioni top 5 seller
+    # 3. Position boxplot for top 5 sellers
     top5 = df_with_seller.groupby("seller").size().nlargest(5).index
     for s in top5:
         sub = df_with_seller[df_with_seller["seller"] == s]
         fig.add_trace(go.Box(y=sub["position"], name=s[:20],
                              showlegend=False), row=2, col=1)
 
-    # 4. CoV per query (distinguendo per (query_id, lingua))
+    # 4. CoV per query (distinguished by (query_id, language))
     cov_data = []
     for (qid, lang), grp in df_priced.groupby(["query_id", "language"]):
         if len(grp) >= 5 and grp["price_value"].mean() > 0:
@@ -318,7 +318,7 @@ def export_bias_png(df: pd.DataFrame) -> None:
                              text=[f"{c:.2f}" for c in cov_df["cov"]],
                              textposition="auto"), row=2, col=2)
 
-    # 5. Risultati per categoria
+    # 5. Results by category
     rpq = (df.groupby(["category_l1", "query_id", "language"])
            .size().reset_index(name="n"))
     for cat in df["category_l1"].unique():
@@ -326,7 +326,7 @@ def export_bias_png(df: pd.DataFrame) -> None:
         fig.add_trace(go.Box(y=sub["n"], name=cat,
                              showlegend=False), row=3, col=1)
 
-    # 6. Seller top-3
+    # 6. Top-3 sellers
     t3 = df_with_seller[df_with_seller["position"] <= 3]
     tc = t3.groupby("seller").size().nlargest(10).sort_values()
     fig.add_trace(go.Bar(x=tc.values, y=tc.index, orientation="h",
@@ -336,9 +336,9 @@ def export_bias_png(df: pd.DataFrame) -> None:
 
     fig.update_layout(
         height=1500, width=1500,
-        title_text=f"🔍 Bias Analysis — {len(df)} prodotti, "
-                   f"{df['language'].nunique()} lingue, "
-                   f"{df['seller'].replace('', np.nan).nunique()} seller",
+        title_text=f"🔍 Bias Analysis — {len(df)} products, "
+                   f"{df['language'].nunique()} languages, "
+                   f"{df['seller'].replace('', np.nan).nunique()} sellers",
         title_x=0.5, template="plotly_white",
     )
 

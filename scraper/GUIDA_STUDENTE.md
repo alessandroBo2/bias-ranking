@@ -1,245 +1,245 @@
-# Guida Studente — Product Scraper per Tesi
+# Student Guide — Product Scraper for the Thesis
 
-Questa guida ti porta dall'installazione all'analisi completa,
-passo per passo. Segui l'ordine: ogni step verifica che il
-precedente sia andato a buon fine.
+This guide takes you from installation to the full analysis,
+step by step. Follow the order: each step verifies that the
+previous one succeeded.
 
 ---
 
-## Prima di iniziare: cosa ti serve
+## Before you start: what you need
 
-| Cosa | Dove prenderlo |
+| What | Where to get it |
 |---|---|
 | Python ≥ 3.10 | https://www.python.org/downloads/ |
-| Account Apify (già fatto) | https://console.apify.com |
-| Account Anthropic (già fatto) | https://console.anthropic.com |
-| Le tue chiavi API | Vedi §1 qui sotto |
+| Apify account (already done) | https://console.apify.com |
+| Anthropic account (already done) | https://console.anthropic.com |
+| Your API keys | See §1 below |
 
-**Costi stimati per la tesi completa (400 query × 3 lingue):**
-- Piano Apify Starter: $49/mese
-- Crediti per le query: ~$130
-- **Totale: ~$179** — resta nel budget di $200
+**Estimated costs for the full thesis (400 queries × 3 languages):**
+- Apify Starter plan: $49/month
+- Credits for the queries: ~$130
+- **Total: ~$179** — stays within the $200 budget
 
 ---
 
-## Passo 1 — Configura le chiavi API
+## Step 1 — Configure the API keys
 
-Il progetto usa due servizi a pagamento. Le chiavi vanno nel file `.env`
-(già presente nella cartella, senza valori).
+The project uses two paid services. The keys go in the `.env` file
+(already present in the folder, without values).
 
 **APIFY_TOKEN:**
-1. Vai su https://console.apify.com
-2. Click sul tuo avatar in alto a destra → **Settings**
-3. Tab **Integrations** → **API token** → copia il token
+1. Go to https://console.apify.com
+2. Click your avatar at the top right → **Settings**
+3. **Integrations** tab → **API token** → copy the token
 
 **ANTHROPIC_API_KEY:**
-1. Vai su https://console.anthropic.com
-2. Menu **API Keys** → **Create Key** → copia la chiave
+1. Go to https://console.anthropic.com
+2. **API Keys** menu → **Create Key** → copy the key
 
-Apri il file `.env` con un editor di testo (Blocco Note va bene) e sostituisci i placeholder:
+Open the `.env` file with a text editor (Notepad is fine) and replace the placeholders:
 
 ```
-APIFY_TOKEN=apify_api_metti_qui_il_tuo_token
-ANTHROPIC_API_KEY=sk-ant-metti_qui_la_tua_chiave
+APIFY_TOKEN=apify_api_put_your_token_here
+ANTHROPIC_API_KEY=sk-ant-put_your_key_here
 ```
 
-Salva il file. **Non condividere mai questo file con nessuno.**
+Save the file. **Never share this file with anyone.**
 
 ---
 
-## Passo 2 — Installa le dipendenze
+## Step 2 — Install the dependencies
 
-Apri un terminale nella cartella del progetto ed esegui:
+Open a terminal in the project folder and run:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Attendi il completamento (1-3 minuti). Se vedi errori, prova:
+Wait for it to finish (1-3 minutes). If you see errors, try:
 ```bash
 python -m pip install -r requirements.txt
 ```
 
 ---
 
-## Passo 3 — Verifica la configurazione
+## Step 3 — Verify the configuration
 
 ```bash
 python -c "
 from dotenv import load_dotenv; import os; load_dotenv()
 at = os.environ.get('APIFY_TOKEN','')
 ak = os.environ.get('ANTHROPIC_API_KEY','')
-print('APIFY_TOKEN:', 'OK' if at.startswith('apify_api_') else 'MANCANTE o ERRATO')
-print('ANTHROPIC_API_KEY:', 'OK' if ak.startswith('sk-ant-') else 'MANCANTE o ERRATA')
+print('APIFY_TOKEN:', 'OK' if at.startswith('apify_api_') else 'MISSING or WRONG')
+print('ANTHROPIC_API_KEY:', 'OK' if ak.startswith('sk-ant-') else 'MISSING or WRONG')
 "
 ```
 
-Devono comparire due `OK`. Se compare `MANCANTE`, torna al Passo 1.
+You should see two `OK`s. If you see `MISSING`, go back to Step 1.
 
 ---
 
-## Passo 4 — Apri la GUI (punto di partenza consigliato)
+## Step 4 — Open the GUI (recommended starting point)
 
 ```bash
 python main.py gui
 ```
 
-Si apre una finestra con due tab:
-- **🧙 Wizard** — per eseguire la pipeline completa
-- **🔍 Explorer** — per esplorare i dati già raccolti
+A window opens with two tabs:
+- **🧙 Wizard** — to run the full pipeline
+- **🔍 Explorer** — to explore the data already collected
 
-Tienila aperta: la userai per tutto il lavoro.
+Keep it open: you'll use it throughout the work.
 
 ---
 
-## Passo 5 — Primo test (piccolo, economico)
+## Step 5 — First test (small, cheap)
 
-Prima di spendere i $179 del run completo, fai un test con poche query.
+Before spending the $179 of the full run, do a test with a few queries.
 
-Nella GUI, tab **Wizard**, clicca **🚀 Avvia Wizard**. Si apre un terminale. Segui le istruzioni:
+In the GUI, **Wizard** tab, click **🚀 Start Wizard**. A terminal opens. Follow the instructions:
 
-1. **Quale CSV?** → scegli `queries_pilot_100.csv`
-2. **Categoria L1?** → `(tutte)`
-3. **Query type?** → `(tutti)`
-4. **Quante query?** → digita `3`
-5. **Lingue?** → scegli solo `IT` (digita `1`)
-6. **Risultati per query?** → lascia `20` (non puoi mettere meno)
-7. **Concorrenza?** → lascia `3`
+1. **Which CSV?** → choose `queries_pilot_100.csv`
+2. **L1 category?** → `(all)`
+3. **Query type?** → `(all)`
+4. **How many queries?** → type `3`
+5. **Languages?** → choose only `IT` (type `1`)
+6. **Results per query?** → leave `20` (you can't set fewer)
+7. **Concurrency?** → leave `3`
 
-Il wizard mostra il **preventivo costi** prima di procedere:
+The wizard shows the **cost estimate** before proceeding:
 ```
-Costo FREE tier:                 $1.23
-Costo BRONZE (Starter $49/mese): $0.32
+FREE tier cost:                  $1.23
+BRONZE cost (Starter $49/month): $0.32
 ```
 
-Digita `s` per confermare. Il test impiega 1-3 minuti.
+Type `y` to confirm. The test takes 1-3 minutes.
 
-**Cosa aspettarti:** il wizard stampa i prodotti trovati, poi genera
-automaticamente analytics e bias e apre le dashboard nel browser.
-
----
-
-## Passo 6 — Esplora i dati del test
-
-Nella GUI, tab **Explorer**, clicca **▶ Esegui Explorer**.
-Vedrai una panoramica: quanti prodotti, per lingua, per categoria, top seller.
-
-Prova anche:
-- Seleziona lingua `IT` e riesegui
-- Scrivi una keyword nel campo apposito e riesegui
+**What to expect:** the wizard prints the products found, then automatically
+generates analytics and bias and opens the dashboards in the browser.
 
 ---
 
-## Passo 7 — Run completo per la tesi
+## Step 6 — Explore the test data
 
-Quando sei pronto (e hai il piano Apify Starter attivo):
+In the GUI, **Explorer** tab, click **▶ Run Explorer**.
+You'll see an overview: how many products, by language, by category, top sellers.
 
-1. Nella GUI → **🚀 Avvia Wizard**
+Also try:
+- Select language `IT` and re-run
+- Type a keyword in the dedicated field and re-run
+
+---
+
+## Step 7 — Full run for the thesis
+
+When you're ready (and you have the Apify Starter plan active):
+
+1. In the GUI → **🚀 Start Wizard**
 2. CSV → `queries_400_stratified.csv`
-3. Categoria → `(tutte)`
-4. Tipo → `(tutti)`
-5. Quante query → `400`
-6. Lingue → `IT`, `EN`, `DE` (tutte e tre, digita `1,2,3`)
-7. Risultati → `20`
-8. Concorrenza → `3`
+3. Category → `(all)`
+4. Type → `(all)`
+5. How many queries → `400`
+6. Languages → `IT`, `EN`, `DE` (all three, type `1,2,3`)
+7. Results → `20`
+8. Concurrency → `3`
 
-Il wizard mostra il preventivo (~$179). Leggi con attenzione, poi conferma.
+The wizard shows the estimate (~$179). Read it carefully, then confirm.
 
-**Durata stimata:** 3-5 ore. Puoi lasciarlo girare in background.
+**Estimated duration:** 3-5 hours. You can leave it running in the background.
 
-Al termine si aprono automaticamente nel browser:
-- `output/dashboard.html` — analytics generali
-- `output/bias_dashboard.html` — analisi di bias
-
----
-
-## Passo 8 — Analisi dei risultati
-
-Se vuoi rigenerare le analisi senza rieseguire lo scraping:
-
-```bash
-python main.py analytics   # rigenera dashboard analytics
-python main.py bias        # rigenera dashboard bias
-```
-
-Per esplorare i dati a terminale con filtri:
-```bash
-python main.py explore                             # panoramica completa
-python main.py explore --lang IT                   # solo dati italiani
-python main.py explore --keyword "running shoes"   # dettaglio una keyword
-python main.py explore --runs                      # lista di tutti i run Apify
-```
+When it finishes, these open automatically in the browser:
+- `output/dashboard.html` — general analytics
+- `output/bias_dashboard.html` — bias analysis
 
 ---
 
-## Passo 9 — Commento di Claude (opzionale)
+## Step 8 — Analysis of the results
 
-Il wizard offre alla fine un commento didattico automatico di Claude
-sui risultati dell'analisi. Viene salvato in `output/report.md`.
+If you want to regenerate the analyses without re-running the scraping:
 
-Puoi anche chiedere a Claude direttamente:
 ```bash
-python main.py ask "Analizza i risultati del mio dataset di bias"
+python main.py analytics   # regenerates the analytics dashboard
+python main.py bias        # regenerates the bias dashboard
+```
+
+To explore the data in the terminal with filters:
+```bash
+python main.py explore                             # full overview
+python main.py explore --lang IT                   # Italian data only
+python main.py explore --keyword "running shoes"   # detail of one keyword
+python main.py explore --runs                      # list of all Apify runs
 ```
 
 ---
 
-## Dataset disponibili
+## Step 9 — Claude commentary (optional)
 
-| File | Query | Quando usarlo |
+At the end, the wizard offers an automatic didactic commentary by Claude
+on the analysis results. It is saved in `output/report.md`.
+
+You can also ask Claude directly:
+```bash
+python main.py ask "Analyze the results of my bias dataset"
+```
+
+---
+
+## Available datasets
+
+| File | Queries | When to use it |
 |---|---|---|
-| `queries_pilot_100.csv` | 100 | Test e pratica (Passi 5-6) |
-| `queries_400_stratified.csv` | 400 | **Run tesi** (Passo 7) |
-| `queries_5000.csv` | 5000 | Non usare — costa ~$540 |
+| `queries_pilot_100.csv` | 100 | Test and practice (Steps 5-6) |
+| `queries_400_stratified.csv` | 400 | **Thesis run** (Step 7) |
+| `queries_5000.csv` | 5000 | Don't use — costs ~$540 |
 
-**Il dataset da 400 è già ottimizzato per la tesi:**
-- 6 categorie bilanciate (Electronics, Sporting Goods, Apparel, Home & Garden, Beauty, Baby & Kids)
-- Mix di query generiche e branded
-- 147 sottocategorie coperte su 153
+**The 400-query dataset is already optimized for the thesis:**
+- 6 balanced categories (Electronics, Sporting Goods, Apparel, Home & Garden, Beauty, Baby & Kids)
+- Mix of generic and branded queries
+- 147 of 153 subcategories covered
 
 ---
 
-## Cosa fare se qualcosa va storto
+## What to do if something goes wrong
 
-| Problema | Soluzione |
+| Problem | Solution |
 |---|---|
 | `ModuleNotFoundError` | `pip install -r requirements.txt` |
-| Token non riconosciuto | Controlla `.env`: niente spazi, niente virgolette |
-| Apify 401 Unauthorized | Rigenera il token su console.apify.com |
-| Caratteri strani / emoji rotte (Windows) | Apri PowerShell e scrivi: `$env:PYTHONIOENCODING="utf-8"` |
-| La GUI non si apre | `python main.py wizard` (versione terminale, identica) |
-| 0 prodotti salvati | Controlla il token Apify; verifica di avere crediti |
-| Vuoi ricominciare da zero | Cancella `results.db` e la cartella `raw/` |
+| Token not recognized | Check `.env`: no spaces, no quotes |
+| Apify 401 Unauthorized | Regenerate the token on console.apify.com |
+| Strange characters / broken emoji (Windows) | Open PowerShell and type: `$env:PYTHONIOENCODING="utf-8"` |
+| The GUI doesn't open | `python main.py wizard` (terminal version, identical) |
+| 0 products saved | Check the Apify token; verify you have credits |
+| You want to start over | Delete `results.db` and the `raw/` folder |
 
 ---
 
-## Chiedere aiuto a Claude Code
+## Asking Claude Code for help
 
-Claude Code conosce l'intero progetto. Puoi chiedergli:
+Claude Code knows the entire project. You can ask it:
 
-- *"Spiega i risultati dell'analisi HHI"*
-- *"Perché questa keyword ha 0 risultati?"*
-- *"Come interpreto il coefficiente di Gini nel mio dataset?"*
-- *"Genera un grafico per la mia tesi partendo da output/results.parquet"*
-- *"Aiutami a scrivere la sezione metodologica della tesi"*
+- *"Explain the results of the HHI analysis"*
+- *"Why does this keyword have 0 results?"*
+- *"How do I interpret the Gini coefficient in my dataset?"*
+- *"Generate a chart for my thesis starting from output/results.parquet"*
+- *"Help me write the methodology section of the thesis"*
 
-Per avviare Claude Code nella cartella del progetto:
+To start Claude Code in the project folder:
 ```bash
 claude
 ```
 
 ---
 
-## Struttura della tesi suggerita
+## Suggested thesis structure
 
-Il progetto supporta naturalmente questa struttura:
+The project naturally supports this structure:
 
-1. **Introduzione** — bias algoritmico nei motori di ricerca e-commerce
-2. **Dataset e metodologia** — pipeline di raccolta, dataset stratificato, 3 mercati linguistici
-3. **Analisi della concentrazione seller** — HHI, Gini, CR-k per categoria
-4. **Position bias** — chi occupa le prime posizioni e a che prezzo?
-5. **Disparità cross-lingua** — stessa query, prezzi diversi in IT/EN/DE
-6. **Price diversity** — filtro-bolla dei prezzi (CoV)
-7. **Conclusioni** — limiti del dataset, sviluppi futuri
+1. **Introduction** — algorithmic bias in e-commerce search engines
+2. **Dataset and methodology** — collection pipeline, stratified dataset, 3 language markets
+3. **Seller concentration analysis** — HHI, Gini, CR-k by category
+4. **Position bias** — who occupies the top positions and at what price?
+5. **Cross-language disparity** — same query, different prices in IT/EN/DE
+6. **Price diversity** — price filter bubble (CoV)
+7. **Conclusions** — dataset limitations, future developments
 
-Tutti i grafici necessari sono già generati automaticamente in `output/`.
+All the charts you need are already generated automatically in `output/`.

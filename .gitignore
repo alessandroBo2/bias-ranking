@@ -40,3 +40,6 @@ nb_*.png
 
 # Campioni di validazione SerpApi (runtime)
 validation_samples/
+
+# Panel outputs (runtime data)
+serp_dma/panel/

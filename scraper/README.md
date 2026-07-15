@@ -1,7 +1,7 @@
 # Product Scraper
 
-A product scraping pipeline for Google Shopping via Apify, with Plotly analytics
-and a Claude orchestrator.
+Product scraping pipeline for Google Shopping via Apify, with Plotly
+analytics and a Claude orchestrator.
 
 ## Architecture
 
@@ -59,7 +59,7 @@ Opens a window with two tabs:
 
 Requires only standard Python (tkinter included). Zero extra dependencies.
 
-### 0b. Guided pipeline from the terminal
+### 0b. Terminal-guided pipeline
 
 ```bash
 python main.py wizard
@@ -67,7 +67,7 @@ python main.py wizard
 
 Terminal version of the wizard, identical in flow but interactive via `input()`.
 
-### 1. Pilot test (100 queries, advanced choice)
+### 1. Pilot test (100 queries, advanced option)
 
 ```bash
 # Italian only
@@ -98,13 +98,13 @@ python main.py analytics
 python main.py analytics --export-only
 ```
 
-### 4. Bias analysis (Google Shopping imbalance)
+### 4. Bias analysis (Google Shopping bias)
 
 ```bash
 # Full report: text + HTML dashboard + CSV metrics
 python main.py bias
 
-# Text report in the terminal only
+# Text report to terminal only
 python main.py bias --format text
 
 # Interactive HTML dashboard only
@@ -133,7 +133,7 @@ python main.py explore --lang IT
 python main.py explore --cat "Electronics"
 
 # Cross-language price detail for a specific keyword
-python main.py explore --keyword "cheap mountain bikes"
+python main.py explore --keyword "mountain bike economici"
 
 # List Apify runs with timestamps
 python main.py explore --runs
@@ -146,7 +146,7 @@ python main.py explore --sample 30
 
 ```bash
 # Single query — Claude generates the queries, runs them, analyzes the results
-python main.py ask "Looking for a gaming laptop under 1500€ with an RTX 4070"
+python main.py ask "Cerco un notebook gaming sotto 1500€ con RTX 4070"
 
 # Interactive mode
 python main.py ask --interactive
@@ -158,17 +158,17 @@ python main.py ask --interactive
 product_scraper/
 ├── .env.template          # API keys template
 ├── requirements.txt       # Python dependencies
-├── main.py                # CLI entry point
+├── main.py                # CLI entrypoint
 ├── models.py              # Dataclasses and parsing
 ├── pipeline.py            # CSV → Apify → QueryResult
 ├── storage.py             # SQLite + JSONL
 ├── analytics.py           # Parquet + Plotly dashboard
-├── bias_analysis.py       # Google Shopping imbalance analysis
+├── bias_analysis.py       # Google Shopping bias analysis
 ├── orchestrator.py        # Claude NL orchestrator
 ├── wizard.py              # Interactive guided pipeline (main.py wizard)
-├── gui.py                 # Minimal tkinter GUI (main.py gui)
-├── explore.py             # DB exploration from the terminal (main.py explore)
-├── extra_charts.py        # Cross-language + per-category dashboard
+├── gui.py                 # Mini tkinter GUI (main.py gui)
+├── explore.py             # Terminal-based DB exploration (main.py explore)
+├── extra_charts.py        # Cross-language + per-category dashboards
 ├── queries_pilot_100.csv  # Pilot test (100 queries)
 └── queries_5000.csv       # Full dataset (5000 queries)
 ```
@@ -184,11 +184,11 @@ product_scraper/
     ├── results.parquet      # Columnar export
     ├── dashboard.html       # Interactive dashboard
     ├── bias_dashboard.html  # Bias dashboard (6 charts)
-    ├── bias_metrics.csv     # Bias metrics per query
+    ├── bias_metrics.csv     # Per-query bias metrics
     └── report.md            # Claude report (only with 'ask')
 ```
 
-## Use with Claude Code
+## Using with Claude Code
 
 The student can use Claude Code to run the project:
 
@@ -202,12 +202,12 @@ cd product_scraper
 # 3. Start Claude Code
 claude
 
-# 4. Ask Claude Code to run it
-> install the dependencies and do a test with 10 queries from the pilot
+# 4. Ask Claude Code to run things
+> install the dependencies and run a test with 10 queries from the pilot
 > run the full pilot scraping in Italian
 > generate the analytics dashboard
 ```
 
 Claude Code has direct access to the filesystem and the terminal, so it can
-install dependencies, run the pipeline, see the errors and fix them
-on its own. The only thing to do first is to configure `.env` with the tokens.
+install dependencies, run the pipeline, see errors and fix them
+autonomously. The only thing to do beforehand is configure `.env` with the tokens.

@@ -1,11 +1,11 @@
 """
 scraper_api.py — ScraperAPI backend for Google Shopping.
 
-Alternative to Apify: uses the ScraperAPI structured endpoint
-(https://api.scraperapi.com/structured/google/shopping) that handles
-residential proxies, fingerprinting, and CAPTCHA internally.
+Alternative to Apify: uses ScraperAPI's structured endpoint
+(https://api.scraperapi.com/structured/google/shopping) which internally
+handles residential proxies, fingerprinting and CAPTCHAs.
 
-Cost: ~25 credits/request. Hobby plan (100k credits/month = $29)
+Cost: ~25 credits/request. The Hobby plan (100k credits/month = $29)
 comfortably covers 1,200 queries (30,000 credits).
 """
 from __future__ import annotations
@@ -204,8 +204,8 @@ def print_pipeline_report(results: list[QueryResult], label: str = "ScraperAPI")
 
     print(f"\n{'='*60}")
     print(f"[{label}] ✅ Completed: {len(ok)}/{len(results)}")
-    print(f"[{label}] ❌ Failed:     {len(ko)}")
-    print(f"[{label}] 📦 Products:   {total_items}")
+    print(f"[{label}] ❌ Failed:    {len(ko)}")
+    print(f"[{label}] 📦 Products:  {total_items}")
     if ok:
         avg = sum(r.duration_s for r in ok) / len(ok)
         print(f"[{label}] ⏱  Average time: {avg:.1f}s per query")

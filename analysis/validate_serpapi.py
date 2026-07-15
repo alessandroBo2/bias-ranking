@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 """
-validate_serpapi.py — ~zero-cost validation (free plan) of SerpApi for the audit.
+validate_serpapi.py — Near-zero-cost validation (free plan) of SerpApi for the audit.
 
 google_shopping  -> ORGANIC results of the Shopping tab (product_id, rating, source...).
-google + location -> to discover the SPONSORED ones: PLA shopping (shopping_results/
+google + location -> to discover the SPONSORED items: shopping PLAs (shopping_results/
                      immersive_products) and text ads (ads). Without `location`/`google_domain`
-                     Google doesn't serve ads -> that's why it previously returned 0.
+                     Google does not serve the ads -> that is why it used to return 0.
 
-Prints field coverage and SAVES the raw responses in validation_samples/.
+Prints the field coverage and SAVES the raw dumps in validation_samples/.
 Few calls: 1/keyword on google_shopping (+1 with --with-search).
 
 Usage:
     python validate_serpapi.py
-    python validate_serpapi.py --with-search           # also query 'google' with location
+    python validate_serpapi.py --with-search           # also queries 'google' with location
     python validate_serpapi.py --kw smartphone --locale IT --with-search
 """
 from __future__ import annotations
@@ -51,7 +51,7 @@ def fetch(engine: str, keyword: str, locale: str, api_key: str, with_location: b
     p = LOCALE_PARAMS.get(locale, LOCALE_PARAMS["IT"])
     params = {"engine": engine, "q": keyword, "api_key": api_key,
               "gl": p["gl"], "hl": p["hl"], "google_domain": p["google_domain"]}
-    if with_location:                     # location is needed by the 'google' engine to make ads appear
+    if with_location:                     # the 'google' engine needs location for the ads to show up
         params["location"] = p["location"]
     url = ENDPOINT + "?" + urllib.parse.urlencode(params)
     req = urllib.request.Request(url, headers={"User-Agent": "bias-ranking-validator/1.0"})
@@ -90,7 +90,7 @@ def report_shopping(title: str, r: dict) -> None:
 
 
 def inspect_google(g: dict) -> dict:
-    """Looks for ADS in the 'google' engine and checks whether the items are REALLY sponsored."""
+    """Looks for the ADS in the 'google' engine and checks whether the items REALLY are sponsored."""
     blocks = {k: len(g.get(k) or []) for k in
               ["shopping_results", "immersive_products", "ads", "product_results"]}
     relevant = [k for k in g.keys()
@@ -147,7 +147,7 @@ def main():
                     b = gi["blocks"]
                     print(f"    [google +location] shopping_results={b['shopping_results']} "
                           f"immersive_products={b['immersive_products']} ads(text)={b['ads']}")
-                    print(f"      'Sponsored' marker in the items: {gi['marked_sponsored']} | "
+                    print(f"      'Sponsored' markers inside the items: {gi['marked_sponsored']} | "
                           f"item keys: {gi['sample_item_keys'][:14]}")
                     spons |= gi["marked_sponsored"] > 0   # only a REAL marker, not mere presence
                 except Exception as e:
@@ -159,8 +159,8 @@ def main():
     for loc, v in verdict.items():
         print(f"  {loc}:  sponsored {ok(v['sponsored'])}  product_id {ok(v['product_id'])}  "
               f"rating {ok(v['rating'])}")
-    print("\n  Raw responses in validation_samples/. If 'sponsored' stays at -- even with --with-search,")
-    print("  open a search_*.json and look at 'relevant keys' to see where Google puts the ads.")
+    print("\n  Raw dumps in validation_samples/. If 'sponsored' stays at -- even with --with-search,")
+    print("  open a search_*.json and look at the 'relevant keys' to see where Google puts the ads.")
 
 
 if __name__ == "__main__":

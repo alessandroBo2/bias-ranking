@@ -2,7 +2,7 @@
 orchestrator.py — Claude as an intelligent orchestrator.
 
 Usage:
-    python orchestrator.py "Looking for a gaming laptop under 1500€"
+    python orchestrator.py "Cerco un notebook gaming sotto 1500€"
     python orchestrator.py --interactive
 """
 from __future__ import annotations
@@ -24,15 +24,15 @@ MODEL = "claude-sonnet-4-20250514"
 
 
 def _build_query_generation_prompt(user_request: str) -> str:
-    return f"""You are an assistant specialized in product search on Google Shopping.
+    return f"""You are an assistant specialised in product search on Google Shopping.
 
 The user made this request:
 "{user_request}"
 
-Generate a list of search queries optimized for Google Shopping.
+Generate a list of search queries optimised for Google Shopping.
 The queries must cover variants and synonyms of the product.
 
-Reply ONLY with valid JSON, with no markdown or extra text.
+Reply ONLY with valid JSON, no markdown and no additional text.
 Format:
 [
   {{"query_id": "001", "keyword": "...", "language": "IT", "category_l1": "...", "category_l2": "...", "query_type": "generic", "max_results": 20}},
@@ -117,7 +117,7 @@ def analyze_results(
 
 
 def _results_to_summary(all_items: list) -> str:
-    """Textual summary of the results for Claude's analysis."""
+    """Textual summary of the results for the Claude analysis."""
     if not all_items:
         return "No results found."
 
@@ -167,7 +167,7 @@ async def orchestrate(
     anthropic_key: str | None = None,
     concurrency: int = 3,
 ) -> str:
-    """Full flow: NL → query → scraping → analysis → report."""
+    """Full flow: NL → queries → scraping → analysis → report."""
     kwargs = {}
     if anthropic_key:
         kwargs["api_key"] = anthropic_key
@@ -261,7 +261,7 @@ def main() -> None:
         print(f"\n{report}")
     else:
         print("Usage:")
-        print('  python orchestrator.py "Looking for a gaming laptop under 1500€"')
+        print('  python orchestrator.py "Cerco un notebook gaming sotto 1500€"')
         print("  python orchestrator.py --interactive")
 
 

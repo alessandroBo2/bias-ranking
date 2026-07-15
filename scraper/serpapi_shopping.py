@@ -2,16 +2,16 @@
 """
 serpapi_shopping.py — Production scraper on SerpApi (google_shopping engine).
 
-Collects the organic Shopping tab with a RICH schema (product_id, rating, reviews,
-source, delivery, tag) for the bias audit. One SerpApi search = one SERP (40 results).
+Collects the organic results of the Shopping tab with a RICH schema (product_id, rating,
+reviews, source, delivery, tag) for the bias audit. One SerpApi search = one SERP (40 results).
 
-Features designed to avoid wasting budget:
-  - --estimate : dry-run estimate of how many searches are needed (NO call, $0).
-  - resumable  : saves completed (query_id, locale); a re-run resumes where it left off.
+Features designed not to waste budget:
+  - --estimate : dry-run estimate of how many searches are needed (NO calls, $0).
+  - resumable  : stores completed (query_id, locale) pairs; a re-run resumes where it left off.
   - --max-searches : safety cap to avoid exceeding the plan (e.g. 4900).
   - counts only successful searches; on a quota error it stops cleanly.
 
-Stdlib only (urllib + sqlite3): no dependency to install.
+Stdlib only (urllib + sqlite3): no dependencies to install.
 
 Examples:
   python serpapi_shopping.py --csv queries_5000.csv --locale IT --estimate
@@ -109,9 +109,9 @@ def main():
     ap.add_argument("--locale", default="IT", choices=["IT", "DE", "EN"])
     ap.add_argument("--db", default="results_serpapi.db")
     ap.add_argument("--limit", type=int, default=None, help="use only the first N queries (pilot)")
-    ap.add_argument("--max-searches", type=int, default=5000, help="search cap (plan overrun guard)")
+    ap.add_argument("--max-searches", type=int, default=5000, help="search cap (avoids exceeding the plan)")
     ap.add_argument("--sleep", type=float, default=0.5, help="pause between calls (s)")
-    ap.add_argument("--estimate", action="store_true", help="dry-run estimate, no call")
+    ap.add_argument("--estimate", action="store_true", help="dry-run estimate, no calls")
     a = ap.parse_args()
 
     queries = read_queries(a.csv, a.locale, a.limit)
@@ -126,7 +126,7 @@ def main():
         print(f"\nESTIMATE: {n:,} searches needed (= {n:,} SERPs × 40 results).")
         print(f"  SerpApi plans: Starter 1,000 | Developer 5,000 | Production 15,000")
         fits = "Developer ($75)" if n <= 5000 else "Production ($150)" if n <= 15000 else "Big Data+"
-        print(f"  Minimum coverage: {fits}. No call made.")
+        print(f"  Minimum coverage: {fits}. No calls made.")
         con.close(); return
 
     api_key = load_api_key()
@@ -139,7 +139,7 @@ def main():
                 data = fetch(q["keyword"], a.locale, api_key)
             except Exception as e:
                 print(f"  [{i}/{len(todo)}] '{q['keyword'][:40]}' error: {type(e).__name__}: {e}")
-                # quota/credit errors: better to stop than loop pointlessly
+                # quota/credit errors: better to stop than to loop for nothing
                 if any(s in str(e).lower() for s in ("401", "403", "429", "run out", "quota")):
                     print("   → looks like a key/quota problem: stopping."); break
                 time.sleep(2); continue

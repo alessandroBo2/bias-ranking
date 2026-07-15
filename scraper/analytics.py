@@ -1,7 +1,7 @@
 """
 analytics.py — Parquet export + interactive Plotly dashboard.
 
-Uso:
+Usage:
     python analytics.py                  # full dashboard
     python analytics.py --export-only    # Parquet export only
 """
@@ -29,7 +29,7 @@ def load_dataframe(db_path: Path = DB_PATH) -> pd.DataFrame:
     conn.close()
 
     if df.empty:
-        print("⚠ Empty database. Run the pipeline first.")
+        print("⚠ Database is empty. Run the pipeline first.")
         return df
 
     df["scraped_at"] = pd.to_datetime(df["scraped_at"], utc=True, errors="coerce")

@@ -1,10 +1,10 @@
 """
-gui.py — Minimal GUI for Product Scraper (tkinter, zero extra dependencies).
+gui.py — Mini GUI for Product Scraper (tkinter, zero extra dependencies).
 
 Two tabs:
   • Wizard  — launches the guided pipeline in a separate terminal;
-              quick buttons for analytics/bias analysis-only.
-  • Explorer — form with all parameters, inline output.
+              quick buttons for analysis-only analytics/bias.
+  • Explorer — form with all the parameters, inline output.
 
 Usage:
     python main.py gui
@@ -23,11 +23,11 @@ from tkinter import scrolledtext, ttk
 import tkinter as tk
 
 CWD = Path(__file__).parent
-PYTHON = sys.executable          # the same interpreter that launched the GUI
+PYTHON = sys.executable          # the same interpreter that started the GUI
 ENV = {**os.environ, "PYTHONIOENCODING": "utf-8"}
 
 
-# ─── colors / styles ──────────────────────────────────────────────────────────
+# ─── colors / styles ─────────────────────────────────────────────────────────
 
 BG       = "#F5F5F5"
 BG_DARK  = "#E0E0E0"
@@ -38,7 +38,7 @@ TEXT_OUT = "#1B1B1B"
 MONO     = ("Consolas", 9)
 
 
-# ─── helper: colored button ───────────────────────────────────────────────
+# ─── helper: colored button ──────────────────────────────────────────────────
 
 def _btn(parent, text, cmd, color=ACCENT, width=None):
     b = tk.Button(
@@ -180,20 +180,20 @@ class ProductScraperApp:
             row=0, column=0, sticky="w", padx=16, pady=(14, 2)
         )
         desc = (
-            "The wizard walks you step by step through:\n"
-            "  1.  CSV choice  (queries_pilot_100 or queries_5000)\n"
+            "The wizard takes you step by step through:\n"
+            "  1.  CSV selection  (queries_pilot_100 or queries_5000)\n"
             "  2.  Query filtering by category, type and quantity\n"
-            "  3.  Language choice (IT / EN / DE) + Apify cost estimate\n"
+            "  3.  Language selection (IT / EN / DE) + Apify cost estimate\n"
             "  4.  Scraping via Apify\n"
             "  5.  Analytics + Bias Analysis + automatic dashboard opening\n"
-            "  6.  Claude's didactic commentary (optional)\n\n"
-            "Requires an interactive terminal — opens in a new window."
+            "  6.  Didactic commentary by Claude (optional)\n\n"
+            "Requires an interactive terminal — it opens in a new window."
         )
         _label(frame, desc, size=9, fg="#555").grid(
             row=1, column=0, sticky="w", padx=20, pady=(0, 8)
         )
 
-        # ── Buttons row ────────────────────────────────────────────────────
+        # ── Buttons row ──────────────────────────────────────────────────────
         btn_frame = tk.Frame(frame, bg=BG)
         btn_frame.grid(row=2, column=0, sticky="w", padx=16, pady=4)
 
@@ -255,7 +255,7 @@ class ProductScraperApp:
         frame = tk.Frame(nb, bg=BG)
         frame.columnconfigure(1, weight=1)
 
-        # ── Parameters ────────────────────────────────────────────────────────
+        # ── Parameters ───────────────────────────────────────────────────────
         _label(frame, "Explore the database", bold=True, size=13, fg=ACCENT).grid(
             row=0, column=0, columnspan=2, sticky="w", padx=16, pady=(14, 10)
         )
@@ -308,7 +308,7 @@ class ProductScraperApp:
             width=6, font=("Segoe UI", 10),
         ).grid(row=2, column=3, sticky="w", pady=4)
 
-        # ── Row 1: explorer ─────────────────────────────────────────────────
+        # ── Row 1: explorer ──────────────────────────────────────────────────
         _sep(frame).grid(row=2, column=0, columnspan=2, sticky="ew", padx=16, pady=8)
 
         row_explore = tk.Frame(frame, bg=BG)
@@ -321,11 +321,11 @@ class ProductScraperApp:
             side="left"
         )
 
-        # ── Row 2: dashboard ────────────────────────────────────────────────
+        # ── Row 2: dashboard ─────────────────────────────────────────────────
         row_dash = tk.Frame(frame, bg=BG)
         row_dash.grid(row=4, column=0, columnspan=2, sticky="w", padx=16, pady=(4, 8))
 
-        _label(row_dash, "Graphical views:").pack(side="left", padx=(0, 10))
+        _label(row_dash, "Graphical visualizations:").pack(side="left", padx=(0, 10))
 
         self._btn_an = _btn(
             row_dash, "📊 Generate & Open Analytics", None, color="#388E3C"
@@ -356,7 +356,7 @@ class ProductScraperApp:
         self._exp_out.grid(row=6, column=0, columnspan=2, sticky="nsew", padx=16, pady=(0, 16))
         frame.rowconfigure(6, weight=1)
 
-        # Wire up dashboard buttons now that _exp_out exists
+        # Wire up the dashboard buttons now that _exp_out exists
         self._btn_an.config(command=lambda: self._run(
             ["analytics"], self._exp_out, self._btn_an, "📊 Generate & Open Analytics"
         ))

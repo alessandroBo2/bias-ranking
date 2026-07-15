@@ -30,7 +30,7 @@ def load_queries(
     max_results: int = 20,
 ) -> list[QuerySpec]:
     """
-    Reads the multilingual CSV and returns QuerySpec for the chosen language.
+    Reads the multilingual CSV and returns QuerySpec objects for the chosen language.
 
     Args:
         csv_path:    path to the CSV
@@ -150,7 +150,7 @@ async def run_pipeline(
 
     Args:
         csv_path:        path to the CSV
-        apify_token:     Apify API token (used by backend="apify" and as a fallback)
+        apify_token:     Apify API token (used by backend="apify" and as fallback)
         language:        IT | EN | DE
         concurrency:     parallel queries
         max_results:     results per query
@@ -159,7 +159,7 @@ async def run_pipeline(
     """
     queries = load_queries(csv_path, language=language, max_results=max_results)
     if not queries:
-        print("⚠ No query found in the CSV.")
+        print("⚠ No queries found in the CSV.")
         return []
 
     country = LANG_TO_COUNTRY.get(language.upper(), "IT")
@@ -211,8 +211,8 @@ async def run_pipeline(
 
     print(f"\n{'='*60}")
     print(f"✅ Completed: {len(ok)}/{len(results)}")
-    print(f"❌ Failed:     {len(ko)}")
-    print(f"📦 Products:   {total_items}")
+    print(f"❌ Failed:    {len(ko)}")
+    print(f"📦 Products:  {total_items}")
     if ok:
         avg = sum(r.duration_s for r in ok) / len(ok)
         print(f"⏱  Average time: {avg:.1f}s per query")

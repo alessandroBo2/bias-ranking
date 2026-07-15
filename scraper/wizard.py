@@ -1,13 +1,13 @@
 """
 wizard.py — Interactive guided pipeline for students.
 
-Flow: CSV choice → query filtering → cost estimate → confirmation →
-        scrape → analytics → bias → Claude's didactic commentary.
+Flow: CSV selection → query filtering → cost estimate → confirmation →
+      scrape → analytics → bias → didactic commentary by Claude.
 
 Usage:
     python main.py wizard
 
-Zero additional dependencies: uses only stdlib input().
+Zero additional dependencies: uses only input() from the stdlib.
 """
 from __future__ import annotations
 
@@ -44,13 +44,13 @@ def ask(prompt: str, default: str | None = None) -> str:
             return s
         if default is not None:
             return default
-        print("  ⚠ Answer required.")
+        print("  ⚠ An answer is required.")
 
 
 def ask_yesno(prompt: str, default: bool = True) -> bool:
     d = "y" if default else "n"
     s = ask(f"{prompt} (y/n)", default=d).lower()
-    return s in ("y", "yes", "true", "1")
+    return s in ("s", "si", "sì", "y", "yes", "true", "1")
 
 
 def ask_int(prompt: str, default: int, min_v: int = 1, max_v: int = 10_000) -> int:
@@ -144,14 +144,14 @@ def filter_queries(csv_path: Path) -> pd.DataFrame:
         df = df[df["query_type"] == qt]
 
     df = df.reset_index(drop=True)
-    print(f"\n  ✓ {len(df)} queries after filtering.")
+    print(f"\n  ✓ {len(df)} queries after the filters.")
 
     if df.empty:
         return df
 
     max_n = len(df)
     n = ask_int(
-        f"How many queries do you want from the top of the list? (max {max_n})",
+        f"How many queries do you want to take from the top of the list? (max {max_n})",
         default=min(3, max_n), min_v=1, max_v=max_n,
     )
     df = df.head(n)
@@ -170,7 +170,7 @@ def filter_queries(csv_path: Path) -> pd.DataFrame:
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# Step 3 — scrape configuration + estimate
+# Step 3 — scrape configuration + cost estimate
 # ═══════════════════════════════════════════════════════════════════════
 
 def configure_scrape(df_q: pd.DataFrame) -> tuple[list[str], int, int]:
@@ -181,14 +181,14 @@ def configure_scrape(df_q: pd.DataFrame) -> tuple[list[str], int, int]:
     print()
     print("  ℹ️  Note on results per query:")
     print("     • The Apify actor (burbn) enforces a minimum of 20 results per call.")
-    print("     • You cannot request fewer: values < 20 are rejected by the API.")
+    print("     • It is not possible to request fewer: values < 20 are rejected by the API.")
     print("     • To save credits, reduce the NUMBER OF QUERIES,")
     print("       not the results per query.")
     print("     • The value you enter is a maximum CAP: Google may return")
-    print("       fewer if the keyword is poorly indexed in the chosen market.")
+    print("       fewer if the keyword is poorly indexed for the chosen market.")
     print()
     max_results = ask_int(
-        "Results per query (min 20, imposed by Apify)",
+        "Results per query (min 20, enforced by Apify)",
         default=20, min_v=20, max_v=100,
     )
     concurrency = ask_int(
@@ -204,10 +204,10 @@ def configure_scrape(df_q: pd.DataFrame) -> tuple[list[str], int, int]:
     print(f"  Total calls: {n_calls} = {len(df_q)} queries × {len(languages)} languages")
     print(f"  Results per query: {max_results} (max — Google may return fewer)")
     print(f"  ────────────────────────────────────────")
-    print(f"  FREE tier cost:                  ${cost_free:6.2f}")
-    print(f"  BRONZE cost (Starter $49/month): ${cost_bronze:6.2f}")
+    print(f"  FREE tier cost:                   ${cost_free:6.2f}")
+    print(f"  BRONZE cost (Starter $49/month):  ${cost_bronze:6.2f}")
     print(f"  ────────────────────────────────────────")
-    print(f"  ⚠ Free tier: $5/month credit; beyond that, the actor won't start.")
+    print(f"  ⚠ Free tier: $5/month of credit; beyond that, the actor won't start.")
     print(f"  💡 For cheap tests: pick few queries (2-5) at 20 results.")
 
     if not ask_yesno("\n  Proceed with these parameters?", default=True):
@@ -228,7 +228,7 @@ def run_scrapes(df_q: pd.DataFrame, languages: list[str],
 
     apify_token = os.environ.get("APIFY_TOKEN", "")
     if not apify_token:
-        print("  ❌ APIFY_TOKEN missing in .env")
+        print("  ❌ APIFY_TOKEN missing from .env")
         sys.exit(1)
 
     tmp_csv = Path("_wizard_selection.csv")
@@ -275,7 +275,7 @@ def run_analysis() -> tuple[str, "pd.DataFrame"]:
     header("5. ANALYTICS")
     df = load_dataframe()
     if df.empty:
-        print("  ⚠ Empty DB, nothing to analyze.")
+        print("  ⚠ DB is empty, nothing to analyze.")
         return run_ts, df
     export_parquet(df, run_ts=run_ts)
     print_summary(df)
@@ -301,13 +301,13 @@ def run_analysis() -> tuple[str, "pd.DataFrame"]:
 
 def claude_commentary(run_ts: str | None = None) -> None:
     header("7. DIDACTIC COMMENTARY (Claude)")
-    if not ask_yesno("Do you want a Claude commentary on the results?", default=True):
+    if not ask_yesno("Do you want a commentary from Claude on the results?", default=True):
         print("  ⏭ Skipped.")
         return
 
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
-        print("  ⚠ ANTHROPIC_API_KEY not present in .env, skip.")
+        print("  ⚠ ANTHROPIC_API_KEY not present in .env, skipping.")
         return
 
     from anthropic import Anthropic
@@ -336,26 +336,26 @@ def claude_commentary(run_ts: str | None = None) -> None:
     }
     summary_json = json.dumps(summary, indent=2, default=str, ensure_ascii=False)
 
-    prompt = f"""You are a didactic assistant for a student learning the analysis
-of bias in search-engine results (Google Shopping).
+    prompt = f"""You are a teaching assistant for a student who is learning to analyse
+bias in search-engine results (Google Shopping).
 
-I'm giving you the output of an analysis on a dataset of scraped products.
-Write a DIDACTIC and CLEAR commentary (max 600 words) in English:
+Below is the output of an analysis run on a dataset of scraped products.
+Write a DIDACTIC and CLEAR commentary (max 600 words), in Italian:
 
-1. Summarize the dataset's key numbers (volume, coverage, languages, categories).
+1. Summarise the key numbers of the dataset (volume, coverage, languages, categories).
 2. Explain what the concentration metrics (HHI, Gini, CR-k) indicate
    in THIS specific case, putting the numbers in context.
-3. If there is significant cross-language price disparity, highlight it
+3. If there is a significant cross-language price disparity, highlight it
    and try to explain the possible causes (local market, currency,
    Google's positioning, sample size).
-4. Identify any price "filter bubbles" (low CoV) and what
-   they mean in practice.
-5. Conclude with 2-3 limitations of the current dataset and what to add
+4. Identify any price "filter bubbles" (low CoV) and what they
+   mean operationally.
+5. Close with 2-3 limitations of the current dataset and what to add
    (more queries, more languages, more categories) to make it more robust.
 
-Language: friendly but rigorous, no unexplained jargon.
-Output: plain Markdown text, no preamble ("Here's the commentary..."),
-ready to paste into a report.
+Tone: friendly but rigorous, no unexplained jargon.
+Output: pure Markdown text, no preamble ("Here is the commentary..."),
+ready to paste into a report. Write the commentary in Italian.
 
 Analysis data (JSON):
 ```json
@@ -396,7 +396,7 @@ Analysis data (JSON):
 # ═══════════════════════════════════════════════════════════════════════
 
 def _db_product_count() -> int:
-    """Returns the number of products currently in results.db (0 if it doesn't exist)."""
+    """Returns the number of products currently in results.db (0 if it does not exist)."""
     db = Path("results.db")
     if not db.exists():
         return 0
@@ -414,27 +414,27 @@ def run() -> None:
     load_dotenv()
 
     header("WIZARD — Guided Product Scraper")
-    print("  I'll take you step by step from query choice → scrape → analysis → commentary.")
+    print("  I'll take you step by step from query selection → scrape → analysis → commentary.")
     print("  Press Ctrl+C at any time to exit.")
 
-    # If the DB already has data, offer "analysis only" mode
+    # If the DB already has data, offer the "analysis only" mode
     n_existing = _db_product_count()
     skip_scrape = False
     if n_existing > 0:
         print(f"\n  ℹ️  results.db already contains {n_existing} products.")
         skip_scrape = ask_yesno(
-            "Do you want to skip scraping and work only on analyzing the existing data?",
+            "Do you want to skip scraping and work only on the analysis of existing data?",
             default=False,
         )
 
     if not skip_scrape:
-        header("1. Input CSV choice")
+        header("1. Input CSV selection")
         csv_path = select_csv()
 
         header("2. Query filtering")
         df_q = filter_queries(csv_path)
         if df_q.empty:
-            print("  ⚠ No query selected, exiting.")
+            print("  ⚠ No queries selected, exiting.")
             return
 
         header("3. Scrape configuration")

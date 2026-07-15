@@ -1,6 +1,6 @@
 """
 extra_charts.py — Additional charts for multilingual/multi-category analysis.
-Exports PNG via kaleido for quick inspection.
+Exports PNGs via kaleido for quick inspection.
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def load() -> pd.DataFrame:
 
 
 def cross_lang_dashboard(df: pd.DataFrame) -> None:
-    """6-panel view focused on the dynamic cross-language comparison."""
+    """6-panel focused on the dynamic cross-language comparison."""
     df_p = df.dropna(subset=["price_value"])
     languages = sorted(df["language"].unique())
 
@@ -36,7 +36,7 @@ def cross_lang_dashboard(df: pd.DataFrame) -> None:
         rows=3, cols=2,
         subplot_titles=(
             "Price distribution by language (boxplot)",
-            "Overlaid price histogram by language",
+            "Overlaid price histograms by language",
             "Position vs price (scatter, colored by language)",
             "Average price by L2 category × language (heatmap)",
             "Top 5 most expensive products by language",
@@ -72,7 +72,7 @@ def cross_lang_dashboard(df: pd.DataFrame) -> None:
         )
     fig.update_layout(barmode="overlay")
 
-    # 3. Position-vs-price scatter (1 trace per language)
+    # 3. Position vs price scatter (1 trace per language)
     for lang in languages:
         sub = df_p[df_p["language"] == lang]
         fig.add_trace(
@@ -84,7 +84,7 @@ def cross_lang_dashboard(df: pd.DataFrame) -> None:
             row=2, col=1,
         )
 
-    # 4. Average-price heatmap by L2 category × language
+    # 4. Heatmap of average price by L2 category × language
     pivot = (df_p.groupby(["category_l2", "language"])["price_value"]
              .mean().unstack().round(0))
     pivot = pivot.reindex(columns=languages)
@@ -101,7 +101,7 @@ def cross_lang_dashboard(df: pd.DataFrame) -> None:
         row=2, col=2,
     )
 
-    # 5. Top 5 high prices by language (concatenated)
+    # 5. Top 5 highest prices per language (concatenated)
     rows = []
     for lang in languages:
         top = df_p[df_p["language"] == lang].nlargest(5, "price_value")
@@ -161,7 +161,7 @@ def cross_lang_dashboard(df: pd.DataFrame) -> None:
 
 
 def category_dashboard(df: pd.DataFrame) -> None:
-    """Inter-category comparison (Electronics vs Sporting Goods, etc.)."""
+    """Cross-category comparison (Electronics vs Sporting Goods, etc.)."""
     df_p = df.dropna(subset=["price_value"])
     cats = sorted(df_p["category_l2"].unique())
 
@@ -171,7 +171,7 @@ def category_dashboard(df: pd.DataFrame) -> None:
             "Price distribution by L2 category",
             "Generic vs Branded — price distribution",
             "Top sellers by L2 category (% share)",
-            "Price coverage (% products with price) by category",
+            "Price coverage (% products with a price) by category",
         ),
         vertical_spacing=0.13,
         horizontal_spacing=0.13,
@@ -200,7 +200,7 @@ def category_dashboard(df: pd.DataFrame) -> None:
                 row=1, col=2,
             )
 
-    # 3. Top sellers by category (top 5 each)
+    # 3. Top sellers per category (top 5 for each)
     rows = []
     for cat in cats:
         sub = df[(df["category_l2"] == cat) & (df["seller"] != "")]
@@ -237,11 +237,11 @@ def category_dashboard(df: pd.DataFrame) -> None:
     fig.update_xaxes(title_text="€ price", row=1, col=2)
     fig.update_yaxes(title_text="count", row=1, col=2)
     fig.update_xaxes(title_text="% of category total", row=2, col=1)
-    fig.update_xaxes(title_text="% products with price", row=2, col=2)
+    fig.update_xaxes(title_text="% products with a price", row=2, col=2)
 
     fig.update_layout(
         height=1100, width=1500,
-        title_text="📦 Inter-category comparison",
+        title_text="📦 Cross-category comparison",
         title_x=0.5,
         template="plotly_white",
         barmode="overlay",
@@ -257,7 +257,7 @@ def category_dashboard(df: pd.DataFrame) -> None:
 
 
 def export_bias_png(df: pd.DataFrame) -> None:
-    """Also saves the bias dashboard as PNG."""
+    """Saves the bias dashboard as a PNG as well."""
     df_priced = df.dropna(subset=["price_value"])
     df_with_seller = df[df["seller"] != ""]
 
@@ -326,7 +326,7 @@ def export_bias_png(df: pd.DataFrame) -> None:
         fig.add_trace(go.Box(y=sub["n"], name=cat,
                              showlegend=False), row=3, col=1)
 
-    # 6. Top-3 sellers
+    # 6. Seller top-3
     t3 = df_with_seller[df_with_seller["position"] <= 3]
     tc = t3.groupby("seller").size().nlargest(10).sort_values()
     fig.add_trace(go.Bar(x=tc.values, y=tc.index, orientation="h",

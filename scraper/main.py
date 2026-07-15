@@ -1,8 +1,8 @@
 """
-main.py — Entry point of the product scraper.
+main.py — Entrypoint of the product scraper.
 
-Uso:
-    # Pipeline from CSV (default: IT language)
+Usage:
+    # Pipeline from CSV (default: language IT)
     python main.py scrape queries_pilot_100.csv
     python main.py scrape queries_pilot_100.csv --lang EN
     python main.py scrape queries_pilot_100.csv --lang DE --concurrency 5
@@ -12,7 +12,7 @@ Uso:
     python main.py analytics --export-only
 
     # Claude orchestrator (natural language)
-    python main.py ask "Looking for a 2TB NVMe SSD under 150€"
+    python main.py ask "Cerco un SSD NVMe 2TB sotto 150€"
     python main.py ask --interactive
 """
 from __future__ import annotations
@@ -35,10 +35,10 @@ def cmd_scrape(args: argparse.Namespace) -> None:
     backend = args.backend
 
     if backend == "scraperapi" and not scraperapi_key:
-        print("❌ SCRAPERAPI_KEY missing in .env (required for --backend scraperapi)")
+        print("❌ SCRAPERAPI_KEY missing from .env (required for --backend scraperapi)")
         sys.exit(1)
     if backend == "apify" and not apify_token:
-        print("❌ APIFY_TOKEN missing in .env")
+        print("❌ APIFY_TOKEN missing from .env")
         sys.exit(1)
     if not apify_token and not scraperapi_key:
         print("❌ No token found in .env (APIFY_TOKEN or SCRAPERAPI_KEY)")
@@ -90,14 +90,14 @@ def cmd_analytics(args: argparse.Namespace) -> None:
 
 
 def cmd_ask(args: argparse.Namespace) -> None:
-    """Claude orchestrator: NL → query → scraping → analysis."""
+    """Claude orchestrator: NL → queries → scraping → analysis."""
     from orchestrator import orchestrate, interactive_mode
 
     apify_token = os.environ.get("APIFY_TOKEN", "")
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
 
     if not apify_token:
-        print("❌ APIFY_TOKEN missing in .env")
+        print("❌ APIFY_TOKEN missing from .env")
         sys.exit(1)
 
     if args.interactive:
@@ -119,13 +119,13 @@ def cmd_wizard(args: argparse.Namespace) -> None:
 
 
 def cmd_gui(args: argparse.Namespace) -> None:
-    """Minimal tkinter GUI for wizard and explorer."""
+    """Mini tkinter GUI for wizard and explorer."""
     from gui import launch
     launch()
 
 
 def cmd_explore(args: argparse.Namespace) -> None:
-    """Explores results.db from the terminal."""
+    """Explore results.db from the terminal."""
     from explore import explore
     explore(
         lang=args.lang,
@@ -137,7 +137,7 @@ def cmd_explore(args: argparse.Namespace) -> None:
 
 
 def cmd_bias(args: argparse.Namespace) -> None:
-    """Google Shopping imbalance analysis."""
+    """Google Shopping bias analysis."""
     import webbrowser
     from datetime import datetime
     from bias_analysis import (
@@ -171,7 +171,7 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # --- scrape ---
-    p_scrape = subparsers.add_parser("scrape", help="Scraping from a multilingual CSV")
+    p_scrape = subparsers.add_parser("scrape", help="Scraping from multilingual CSV")
     p_scrape.add_argument("csv", help="Path to the queries CSV")
     p_scrape.add_argument(
         "--lang", "-l", default="IT", choices=["IT", "EN", "DE"],
@@ -206,7 +206,7 @@ def main() -> None:
     # --- wizard ---
     p_wiz = subparsers.add_parser(
         "wizard",
-        help="Interactive guided pipeline (recommended to start)",
+        help="Interactive guided pipeline (recommended to get started)",
     )
     p_wiz.set_defaults(func=cmd_wizard)
 
@@ -220,11 +220,11 @@ def main() -> None:
     p_exp.set_defaults(func=cmd_explore)
 
     # --- gui ---
-    p_gui = subparsers.add_parser("gui", help="Minimal GUI for wizard and explorer")
+    p_gui = subparsers.add_parser("gui", help="Mini GUI for wizard and explorer")
     p_gui.set_defaults(func=cmd_gui)
 
     # --- bias ---
-    p_bias = subparsers.add_parser("bias", help="Google Shopping imbalance analysis")
+    p_bias = subparsers.add_parser("bias", help="Google Shopping bias analysis")
     p_bias.add_argument(
         "--format", "-f", choices=["text", "html", "csv", "all"], default="all",
         help="Output format (default: all)",

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 """
-Bias audit on Google Shopping — Learning-to-rank (LambdaMART) with a semantic encoder.
-CLI version aligned with the bias_ranking_audit.ipynb notebook.
+Google Shopping bias audit — Learning-to-rank (LambdaMART) with a semantic encoder.
+CLI version, aligned with the notebook bias_ranking_audit.ipynb.
 
-Encoder:
-  sentence-transformers -> full MiniLM (paraphrase-multilingual-MiniLM-L12-v2). Requires torch.
+Encoders:
+  sentence-transformers -> full MiniLM (paraphrase-multilingual-MiniLM-L12-v2). Needs torch.
                            Use --model-path to load it OFFLINE from a local folder.
-  model2vec             -> static multilingual, no torch, CPU. Default in sandbox.
+  model2vec             -> static multilingual, no torch, CPU-only. Default in the sandbox.
   tfidf                 -> lexical proxy, for comparison.
 
 Examples:
@@ -68,11 +68,11 @@ def compute_relevance(df, encoder, model_path=""):
     try:
         return fn(df, model_path), encoder
     except Exception as e:
-        print(f"[rel] '{encoder}' not available ({type(e).__name__}: {e}) -> fallback TF-IDF")
+        print(f"[rel] '{encoder}' unavailable ({type(e).__name__}: {e}) -> TF-IDF fallback")
         return rel_tfidf(df), "tfidf(fallback)"
 
 
-# ----------------------------- feature ------------------------------------- #
+# ----------------------------- features ------------------------------------- #
 MERIT    = ["log_price", "rel", "title_len", "title_words", "is_branded", "category_l1", "category_l2"]
 PLATFORM = ["is_amazon", "is_giant", "seller_freq_log"]
 CAT      = ["category_l1", "category_l2"]
@@ -85,7 +85,7 @@ def load(db_path, country):
         con.close()
     df = df[df["price_value"].notna() & (df["price_value"] > 0)].reset_index(drop=True)
     if df.empty:
-        raise SystemExit(f"No row with a valid price for language='{country}'.")
+        raise SystemExit(f"No rows with a valid price for language='{country}'.")
     return df
 
 def build_features(df, rel):
@@ -134,15 +134,15 @@ def _make_plots(country, used, results, A, sv, dte, lift_single):
     import shap
     tag = f"{country}_{used}"
 
-    # 1) NDCG@10 per model
+    # 1) NDCG@10 by model
     fig, ax = plt.subplots(figsize=(7, 3.6))
     ks = list(results); vs = [results[k] for k in ks]
     ax.barh(ks, vs, color=["#bdbdbd", "#bdbdbd", "#4c78a8", "#e45756"]); ax.invert_yaxis()
     ax.set_xlim(0.35, max(vs) + 0.03)
     for y, v in enumerate(vs):
         ax.text(v + 0.003, y, f"{v:.3f}", va="center", fontsize=10)
-    ax.set_xlabel("NDCG@10 (test SERPs)")
-    ax.set_title(f"Reconstruction of Google's ordering — {country} ({used})")
+    ax.set_xlabel("NDCG@10 (held-out SERPs)")
+    ax.set_title(f"Reconstructing Google's order — {country} ({used})")
     plt.tight_layout(); plt.savefig(f"nb_ndcg_{tag}.png", dpi=120, bbox_inches="tight"); plt.close()
 
     # 2) lift distribution across seeds
@@ -159,12 +159,12 @@ def _make_plots(country, used, results, A, sv, dte, lift_single):
     # 3) SHAP summary (merit+seller model, seed-42 split)
     shap.summary_plot(sv, dte[MERIT + PLATFORM], show=False, max_display=10)
     plt.tight_layout(); plt.savefig(f"nb_shap_{tag}.png", dpi=120, bbox_inches="tight"); plt.close()
-    print(f"-> charts: nb_ndcg_{tag}.png, nb_lift_{tag}.png, nb_shap_{tag}.png")
+    print(f"-> figures: nb_ndcg_{tag}.png, nb_lift_{tag}.png, nb_shap_{tag}.png")
 
 
 def run(df, used, country, n_seeds=10, out_csv=True, make_plots=True):
     import shap
-    # baseline + single split (seed 42)
+    # baselines + single split (seed 42)
     tr, te = _split(df, 42); dte_all = df.iloc[te].sort_values("run_id")
     rng = np.random.default_rng(0)
     nd_rand  = _ndcg_baseline(dte_all, lambda g: rng.random(len(g)))
@@ -177,7 +177,7 @@ def run(df, used, country, n_seeds=10, out_csv=True, make_plots=True):
                "merit only": nA, "merit + seller": nB}
     sv_main = shap.TreeExplainer(mB).shap_values(dte[MERIT + PLATFORM])
 
-    # multiseed stability
+    # multi-seed stability
     rows = []
     for s in range(n_seeds):
         tr, te = _split(df, s)
@@ -188,7 +188,7 @@ def run(df, used, country, n_seeds=10, out_csv=True, make_plots=True):
         sa = sv[:, (MERIT + PLATFORM).index("is_amazon")][ia == 1].mean()
         rows.append((a, b, b - a, sa))
     A = np.array(rows)
-    print(f"[{used}] {n_seeds} seed | lift {A[:,2].mean():+.3f} ± {A[:,2].std():.3f} "
+    print(f"[{used}] {n_seeds} seeds | lift {A[:,2].mean():+.3f} ± {A[:,2].std():.3f} "
           f"| is_amazon SHAP {A[:,3].mean():+.3f} ± {A[:,3].std():.3f}")
 
     if out_csv:
@@ -205,7 +205,7 @@ def run(df, used, country, n_seeds=10, out_csv=True, make_plots=True):
         try:
             _make_plots(country, used, results, A, sv_main, dte, nB - nA)
         except Exception as e:
-            print(f"[plot] skipping charts ({type(e).__name__}: {e})")
+            print(f"[plot] skipping figures ({type(e).__name__}: {e})")
 
 
 def main():
@@ -221,7 +221,7 @@ def main():
     print(f"DB={a.db} | country={a.country} | encoder={a.encoder} | device={DEVICE}"
           + (f" | model-path={a.model_path}" if a.model_path else ""))
     df = load(a.db, a.country)
-    print(f"rows {len(df):,} | SERP {df['run_id'].nunique()}")
+    print(f"rows {len(df):,} | SERPs {df['run_id'].nunique()}")
     rel, used = compute_relevance(df, a.encoder, a.model_path)
     print(f"relevance: {used} | mean={np.mean(rel):.3f} std={np.std(rel):.3f}")
     df = build_features(df, rel)

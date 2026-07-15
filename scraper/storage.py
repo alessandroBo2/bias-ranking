@@ -1,5 +1,5 @@
 """
-storage.py — Persistence to SQLite + raw JSONL for an audit trail.
+storage.py — Persistence on SQLite + raw JSONL for audit trail.
 """
 from __future__ import annotations
 

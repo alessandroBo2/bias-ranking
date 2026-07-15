@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Set up the "bias" environment — FULL version (MiniLM via sentence-transformers)
-# Run LOCALLY:  bash setup.sh
+# Setup of the "bias" environment — FULL version (MiniLM via sentence-transformers)
+# To be run LOCALLY:  bash setup.sh
 # =============================================================================
 set -euo pipefail
 
 ENV_NAME="bias"
 
-# --- Pick the torch variant for your machine ---------------------------------
-#   "cu124" -> NVIDIA GPU with CUDA 12.4 (the one you use)
+# --- Pick the torch variant based on your machine ------------------------------
+#   "cu124" -> NVIDIA GPU with CUDA 12.4 (the line you use)
 #   "cpu"   -> no GPU
-#   "auto"  -> let pip decide (on Linux it pulls the CUDA build by default,
-#              heavy ~2.5GB; on macOS/Windows the appropriate build)
+#   "auto"  -> let pip decide (on Linux it downloads the CUDA build by default,
+#              a heavy ~2.5GB; on macOS/Windows the appropriate build)
 TORCH_VARIANT="${TORCH_VARIANT:-cu124}"
 
-echo ">> Creating virtualenv '${ENV_NAME}'"
+echo ">> Creating the virtualenv '${ENV_NAME}'"
 python3 -m venv "${ENV_NAME}"
 PY="${ENV_NAME}/bin/python"
 PIP="${ENV_NAME}/bin/pip"
@@ -35,20 +35,20 @@ esac
 echo ">> Full semantic encoder (MiniLM)"
 "${PIP}" install sentence-transformers
 
-echo ">> Lightweight alternative without torch (optional)"
+echo ">> Lightweight torch-free alternative (optional)"
 "${PIP}" install model2vec
 
 echo ">> Registering the Jupyter kernel 'bias'"
 "${PY}" -m ipykernel install --user --name "${ENV_NAME}" --display-name "Python (${ENV_NAME})"
 
-echo ">> Verification"
+echo ">> Check"
 "${PY}" - <<'PYCHK'
 import torch, sentence_transformers as st, lightgbm, shap
 print("torch", torch.__version__, "| CUDA:", torch.cuda.is_available(), "| ST", st.__version__)
 print("lightgbm", lightgbm.__version__, "| shap", shap.__version__)
 PYCHK
 
-echo ">> GPU quick test"
+echo ">> Quick GPU test"
 "${PY}" - <<'PYGPU'
 import torch
 print("  CUDA available:", torch.cuda.is_available(), "| build:", torch.version.cuda)
@@ -59,18 +59,18 @@ PYGPU
 cat <<EOF
 
 ============================================================
-  Environment '${ENV_NAME}' is ready.
+  Environment '${ENV_NAME}' ready.
   Launch the notebook with:
       ${ENV_NAME}/bin/jupyter lab bias_ranking_audit.ipynb
   (or open the notebook and select the kernel "Python (${ENV_NAME})")
 
-  ENCODER nel notebook:
+  ENCODER in the notebook:
     "sentence-transformers"  -> full MiniLM.
        * ONLINE  : leave ST_LOCAL_PATH="" -> downloads ~470 MB from Hugging Face.
-       * OFFLINE : unzip the bundle ->  unzip minilm_it.zip
+       * OFFLINE : unpack the bundle ->  unzip minilm_it.zip
                    and set  ST_LOCAL_PATH="minilm_it"  (no download).
 
-  Equivalent CLI:
+  Equivalent from the CLI:
       ${ENV_NAME}/bin/python bias_ranking_audit.py --country IT \\
           --encoder sentence-transformers --model-path minilm_it
 

@@ -1,5 +1,5 @@
 """
-models.py — Dataclasses for queries, results, and scraped items.
+models.py — Dataclasses for queries, results and scraped items.
 
 Supports the multilingual CSV format:
     query_id, category_l1, category_l2, query_type, Query_EN, Query_IT, Query_DE
@@ -34,7 +34,7 @@ class QuerySpec:
 
 @dataclass
 class ScrapedItem:
-    """A single product extracted from Google Shopping."""
+    """Single product extracted from Google Shopping."""
     query_id: str
     keyword: str
     language: str
@@ -68,7 +68,7 @@ class QueryResult:
 
 
 def parse_price(raw: str) -> tuple[float | None, str]:
-    """Extracts the numeric value and currency from a raw price string."""
+    """Extracts numeric value and currency from a raw price string."""
     if not raw:
         return None, ""
     raw = raw.replace("\xa0", " ").strip()

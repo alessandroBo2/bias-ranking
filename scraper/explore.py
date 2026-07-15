@@ -5,7 +5,7 @@ Usage:
     python main.py explore                  # full overview
     python main.py explore --lang IT        # filter by language
     python main.py explore --cat "Electronics"
-    python main.py explore --keyword "cheap mountain bikes"
+    python main.py explore --keyword "mountain bike economici"
     python main.py explore --runs           # list Apify runs
     python main.py explore --sample 20      # product sample
 """
@@ -24,7 +24,7 @@ DB_PATH = Path("results.db")
 
 def _connect() -> sqlite3.Connection:
     if not DB_PATH.exists():
-        print("❌ results.db not found. Run a scraping first.")
+        print("❌ results.db not found. Run a scrape first.")
         raise SystemExit(1)
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
@@ -75,14 +75,14 @@ def view_by_language(df: pd.DataFrame) -> None:
     g = (
         df.groupby("language")
         .agg(
-            n_products=("id", "count"),
+            n_prodotti=("id", "count"),
             n_keyword=("keyword", "nunique"),
-            avg_price=("price_value", "mean"),
-            min_price=("price_value", "min"),
-            max_price=("price_value", "max"),
+            prezzo_medio=("price_value", "mean"),
+            prezzo_min=("price_value", "min"),
+            prezzo_max=("price_value", "max"),
         )
         .reset_index()
-        .sort_values("n_products", ascending=False)
+        .sort_values("n_prodotti", ascending=False)
     )
     header = f"  {'Language':<8}  {'Products':>9}  {'Keyword':>8}  "
     header += f"{'Avg price':>13}  {'Min':>8}  {'Max':>8}"
@@ -90,11 +90,11 @@ def view_by_language(df: pd.DataFrame) -> None:
     print("  " + "─" * 62)
     for _, row in g.iterrows():
         print(
-            f"  {row['language']:<8}  {int(row['n_products']):>9,}  "
+            f"  {row['language']:<8}  {int(row['n_prodotti']):>9,}  "
             f"{int(row['n_keyword']):>8,}  "
-            f"{_fmt_price(row['avg_price']):>13}  "
-            f"{_fmt_price(row['min_price']):>8}  "
-            f"{_fmt_price(row['max_price']):>8}"
+            f"{_fmt_price(row['prezzo_medio']):>13}  "
+            f"{_fmt_price(row['prezzo_min']):>8}  "
+            f"{_fmt_price(row['prezzo_max']):>8}"
         )
 
 
@@ -103,13 +103,13 @@ def view_by_category(df: pd.DataFrame) -> None:
     g = (
         df.groupby("category_l1")
         .agg(
-            n_products=("id", "count"),
-            n_languages=("language", "nunique"),
+            n_prodotti=("id", "count"),
+            n_lingue=("language", "nunique"),
             n_keyword=("keyword", "nunique"),
-            avg_price=("price_value", "mean"),
+            prezzo_medio=("price_value", "mean"),
         )
         .reset_index()
-        .sort_values("n_products", ascending=False)
+        .sort_values("n_prodotti", ascending=False)
     )
     header = f"  {'Category':<26}  {'Products':>9}  {'Langs':>7}  {'Keyword':>8}  {'Avg price':>10}"
     print(header)
@@ -117,10 +117,10 @@ def view_by_category(df: pd.DataFrame) -> None:
     for _, row in g.iterrows():
         cat = str(row["category_l1"])[:25]
         print(
-            f"  {cat:<26}  {int(row['n_products']):>9,}  "
-            f"{int(row['n_languages']):>7,}  "
+            f"  {cat:<26}  {int(row['n_prodotti']):>9,}  "
+            f"{int(row['n_lingue']):>7,}  "
             f"{int(row['n_keyword']):>8,}  "
-            f"{_fmt_price(row['avg_price']):>10}"
+            f"{_fmt_price(row['prezzo_medio']):>10}"
         )
 
 
@@ -128,7 +128,7 @@ def view_top_sellers(df: pd.DataFrame, top: int = 15) -> None:
     _sep(f"TOP {top} SELLERS BY FREQUENCY")
     df_sel = df[df["seller"].notna() & (df["seller"] != "")]
     if df_sel.empty:
-        print("  No seller recorded.")
+        print("  No sellers recorded.")
         return
     g = df_sel["seller"].value_counts().head(top)
     for seller, count in g.items():
@@ -147,7 +147,7 @@ def view_runs(df: pd.DataFrame) -> None:
         .agg(
             n=("id", "count"),
             keyword=("keyword", "first"),
-            lang_first=("language", "first"),
+            lingua=("language", "first"),
             when=("scraped_at", "max"),
         )
         .reset_index()
@@ -161,7 +161,7 @@ def view_runs(df: pd.DataFrame) -> None:
         kw = str(row["keyword"])[:34]
         when = str(row["when"])[:16] if row["when"] else ""
         print(
-            f"  {rid:<36}  {int(row['n']):>5,}  {str(row['lang_first']):<6}  "
+            f"  {rid:<36}  {int(row['n']):>5,}  {str(row['lingua']):<6}  "
             f"{kw:<35}  {when}"
         )
 
@@ -169,15 +169,15 @@ def view_runs(df: pd.DataFrame) -> None:
 def view_keyword_prices(df: pd.DataFrame, keyword: str) -> None:
     sub = df[df["keyword"].str.lower() == keyword.lower()]
     if sub.empty:
-        print(f"  No product for keyword '{keyword}'.")
+        print(f"  No products for keyword '{keyword}'.")
         return
     _sep(f"KEYWORD: {keyword}  ({len(sub)} products)")
     g = (
         sub.groupby("language")
         .agg(
             n=("id", "count"),
-            mean=("price_value", "mean"),
-            median=("price_value", "median"),
+            media=("price_value", "mean"),
+            mediana=("price_value", "median"),
             min=("price_value", "min"),
             max=("price_value", "max"),
             std=("price_value", "std"),
@@ -190,8 +190,8 @@ def view_keyword_prices(df: pd.DataFrame, keyword: str) -> None:
     for _, row in g.iterrows():
         print(
             f"  {row['language']:<8}  {int(row['n']):>5,}  "
-            f"{_fmt_price(row['mean']):>8}  "
-            f"{_fmt_price(row['median']):>8}  "
+            f"{_fmt_price(row['media']):>8}  "
+            f"{_fmt_price(row['mediana']):>8}  "
             f"{_fmt_price(row['min']):>8}  "
             f"{_fmt_price(row['max']):>8}  "
             f"{_fmt_price(row['std']):>8}"
@@ -239,7 +239,7 @@ def explore(
     df = _load(where, tuple(params))
 
     if df.empty:
-        print("⚠ No product found with the given filters.")
+        print("⚠ No products found with the given filters.")
         return
 
     if keyword:

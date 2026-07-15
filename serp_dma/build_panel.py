@@ -38,6 +38,7 @@ DTA_MAPPING = {
     "merchantlink": "seller",
     "merchantname": "seller_name",
     "cssname": "css_partner",
+    "productname": "title",
     "price": "price_raw",
     "rating": "rating",
     "totalratings": "rating_count_raw",
@@ -90,8 +91,9 @@ def build_from_single_dta(path, out_dir):
                 off["price_value"] = parse_price_series(off["price_raw"])
                 off["rating_count"] = pd.to_numeric(
                     off["rating_count_raw"].replace("NA", np.nan), errors="coerce")
+                off["title"] = off["title"].replace("NA", np.nan)
                 keep = ["wave", "run_id", "keyword", "category_l1", "category_l2",
-                        "position", "seller", "seller_name", "css_partner",
+                        "position", "title", "seller", "seller_name", "css_partner",
                         "is_google_css", "price_value", "rating", "rating_count",
                         "total_plas", "d_css_pla"]
                 offers_parts.append(off[keep])

@@ -53,6 +53,16 @@ def load(db_path, language="DE"):
     return df
 
 
+def load_panel(parquet_path, wave):
+    """Panel offers built by build_panel.py (e.g. the 2023 baseline wave)."""
+    df = pd.read_parquet(parquet_path)
+    df = df[df["wave"] == wave]
+    df = df[df["price_value"].notna() & (df["price_value"] > 0) & df["title"].notna()]
+    if df.empty:
+        raise SystemExit(f"No usable rows for wave='{wave}' in {parquet_path}.")
+    return df.reset_index(drop=True)
+
+
 def build_features(df, rel):
     df = df.copy(); df["rel"] = rel
     t = df["title"].fillna("")
@@ -62,7 +72,7 @@ def build_features(df, rel):
     df["is_amazon"]   = df["seller"].fillna("").str.contains("amazon", case=False).astype(int)
     df["is_giant"]    = df["seller"].isin(df["seller"].value_counts().head(15).index).astype(int)
     df["seller_freq_log"] = np.log1p(df["seller"].map(df["seller"].value_counts()).fillna(0))
-    df["is_google_css"]   = (df["css_partner"] == "Google").astype(int)
+    df["is_google_css"]   = df["css_partner"].fillna("").str.lower().str.match(r"^google").astype(int)
     for c in CAT: df[c] = df[c].astype("category")
     df["y"] = df["position"].apply(lambda p: 4 if p <= 2 else 3 if p <= 5 else 2 if p <= 10 else 1 if p <= 20 else 0)
     return df
@@ -105,7 +115,7 @@ def _shap_mean(model, dte, feats, feat, mask=None):
     return col.mean() if len(col) else np.nan
 
 
-def run(df, n_seeds=10, out_csv=True):
+def run(df, n_seeds=10, out_csv=True, tag="sponsored_DE"):
     tr, te = _split(df, 42); dte_all = df.iloc[te].sort_values("run_id")
     rng = np.random.default_rng(0)
     nd_rand  = _ndcg_baseline(dte_all, lambda g: rng.random(len(g)))
@@ -141,25 +151,33 @@ def run(df, n_seeds=10, out_csv=True):
             "value": [nd_rand, nd_price, A[:,0].mean(), A[:,1].mean(), A[:,2].mean(),
                       A[:,3].mean(), A[:,3].std(), A[:,4].mean(), A[:,4].std(),
                       A[:,5].mean(), A[:,5].std(), A[:,6].mean(), A[:,6].std()],
-            "layer": "sponsored_DE", "n_seeds": n_seeds,
-        }).to_csv("bias_summary_sponsored_DE.csv", index=False)
-        print("-> bias_summary_sponsored_DE.csv")
+            "layer": tag, "n_seeds": n_seeds,
+        }).to_csv(f"bias_summary_{tag}.csv", index=False)
+        print(f"-> bias_summary_{tag}.csv")
     return A
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default="../results_serp_dma.db")
+    ap.add_argument("--parquet", help="panel_offers.parquet from build_panel.py (overrides --db)")
+    ap.add_argument("--wave", default="2023w24", help="wave to audit when using --parquet")
     ap.add_argument("--language", default="DE")
     ap.add_argument("--seeds", type=int, default=10)
+    ap.add_argument("--tag", default=None, help="label used in the output CSV name")
     a = ap.parse_args()
-    df = load(a.db, a.language)
-    print(f"rows {len(df):,} | SERPs {df['run_id'].nunique()} | "
-          f"Google-CSS share {(df['css_partner'] == 'Google').mean():.3f}")
+    if a.parquet:
+        df = load_panel(a.parquet, a.wave)
+        tag = a.tag or f"sponsored_{a.wave}"
+    else:
+        df = load(a.db, a.language)
+        tag = a.tag or f"sponsored_{a.language}"
+    gshare = df["css_partner"].fillna("").str.lower().str.match(r"^google").mean()
+    print(f"rows {len(df):,} | SERPs {df['run_id'].nunique()} | Google-CSS share {gshare:.3f}")
     rel = rel_tfidf(df)
     print(f"relevance: tfidf | mean={np.mean(rel):.3f} std={np.std(rel):.3f}")
     df = build_features(df, rel)
-    run(df, n_seeds=a.seeds)
+    run(df, n_seeds=a.seeds, tag=tag)
 
 
 if __name__ == "__main__":

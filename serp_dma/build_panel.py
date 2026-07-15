@@ -70,34 +70,38 @@ def _clean_chunk(ch):
     return ch
 
 
-def build_from_single_dta(path, out_dir):
+def build_from_single_dta(paths, out_dir):
+    if isinstance(paths, str):
+        paths = [paths]
     os.makedirs(out_dir, exist_ok=True)
     usecols = ["year", "week"] + list(DTA_MAPPING.keys())
     offers_parts, query_parts = [], []
     tot = 0
-    with pd.read_stata(path, columns=usecols, chunksize=CHUNK) as rdr:
-        for i, ch in enumerate(rdr):
-            tot += len(ch)
-            ch = _clean_chunk(ch)
-            # per-query presence (placeholder rows included): one row per query occurrence
-            query_parts.append(ch.groupby(["wave", "keyword"], sort=False)
-                                 .agg(su_present=("su_present", "max"),
-                                      category_l1=("category_l1", "first"),
-                                      category_l2=("category_l2", "first"))
-                                 .reset_index())
-            # offer rows: a PLA slot exists and passes the position cleaning
-            off = ch[ch["position"].notna() & (ch["position"] <= MAX_POSITION)].copy()
-            if len(off):
-                off["price_value"] = parse_price_series(off["price_raw"])
-                off["rating_count"] = pd.to_numeric(
-                    off["rating_count_raw"].replace("NA", np.nan), errors="coerce")
-                off["title"] = off["title"].replace("NA", np.nan)
-                keep = ["wave", "run_id", "keyword", "category_l1", "category_l2",
-                        "position", "title", "seller", "seller_name", "css_partner",
-                        "is_google_css", "price_value", "rating", "rating_count",
-                        "total_plas", "d_css_pla"]
-                offers_parts.append(off[keep])
-            print(f"chunk {i + 1}: {tot:,} rows processed", flush=True)
+    for path in paths:
+        print(f"-- file: {os.path.basename(path)}", flush=True)
+        with pd.read_stata(path, columns=usecols, chunksize=CHUNK) as rdr:
+            for i, ch in enumerate(rdr):
+                tot += len(ch)
+                ch = _clean_chunk(ch)
+                # per-query presence (placeholder rows included)
+                query_parts.append(ch.groupby(["wave", "keyword"], sort=False)
+                                     .agg(su_present=("su_present", "max"),
+                                          category_l1=("category_l1", "first"),
+                                          category_l2=("category_l2", "first"))
+                                     .reset_index())
+                # offer rows: a PLA slot exists and passes the position cleaning
+                off = ch[ch["position"].notna() & (ch["position"] <= MAX_POSITION)].copy()
+                if len(off):
+                    off["price_value"] = parse_price_series(off["price_raw"])
+                    off["rating_count"] = pd.to_numeric(
+                        off["rating_count_raw"].replace("NA", np.nan), errors="coerce")
+                    off["title"] = off["title"].replace("NA", np.nan)
+                    keep = ["wave", "run_id", "keyword", "category_l1", "category_l2",
+                            "position", "title", "seller", "seller_name", "css_partner",
+                            "is_google_css", "price_value", "rating", "rating_count",
+                            "total_plas", "d_css_pla"]
+                    offers_parts.append(off[keep])
+                print(f"chunk {i + 1}: {tot:,} rows processed", flush=True)
 
     offers = pd.concat(offers_parts, ignore_index=True)
     # per-query presence may span chunk borders: re-aggregate
@@ -173,7 +177,7 @@ def load_wave_file(path):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--dta", help="single Stata file with all waves (real data drop)")
+    ap.add_argument("--dta", nargs="+", help="one or more Stata wave files (real data drop)")
     ap.add_argument("--data-dir", help="legacy: one file per wave")
     ap.add_argument("--queries", help="legacy: external category file")
     ap.add_argument("--out-dir", default="panel")

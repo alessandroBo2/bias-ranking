@@ -142,10 +142,10 @@ python main.py explore --runs
 python main.py explore --sample 30
 ```
 
-### 6. Claude orchestrator (natural language)
+### 6. Orchestrator (natural language)
 
 ```bash
-# Single query — Claude generates the queries, runs them, analyzes the results
+# Single query — it generates the queries, runs them, analyzes the results
 python main.py ask "Cerco un notebook gaming sotto 1500€ con RTX 4070"
 
 # Interactive mode
@@ -188,26 +188,3 @@ product_scraper/
     └── report.md            # Claude report (only with 'ask')
 ```
 
-## Using with Claude Code
-
-The student can use Claude Code to run the project:
-
-```bash
-# 1. Install Claude Code (requires Node.js ≥ 18)
-npm install -g @anthropic-ai/claude-code
-
-# 2. Enter the project folder
-cd product_scraper
-
-# 3. Start Claude Code
-claude
-
-# 4. Ask Claude Code to run things
-> install the dependencies and run a test with 10 queries from the pilot
-> run the full pilot scraping in Italian
-> generate the analytics dashboard
-```
-
-Claude Code has direct access to the filesystem and the terminal, so it can
-install dependencies, run the pipeline, see errors and fix them
-autonomously. The only thing to do beforehand is configure `.env` with the tokens.

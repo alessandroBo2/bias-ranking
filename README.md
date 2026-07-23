@@ -77,7 +77,6 @@ bias/bin/python bias_ranking_audit.py --db ../results.db --country IT \
     --encoder sentence-transformers --model-path minilm_it --seeds 10
 ```
 Generates: `bias_summary_<paese>_<encoder>.csv` + 3 plots (NDCG, lift distribution, SHAP).
-See `audit_glossary.md` for the non-technical explanation of the terms (merit, lift, NDCG, SHAP).
 
 ### Current results (IT market, 10 seeds)
 

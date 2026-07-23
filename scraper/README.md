@@ -1,7 +1,7 @@
 # Product Scraper
 
 Product scraping pipeline for Google Shopping via Apify, with Plotly
-analytics and a Claude orchestrator.
+analytics and a natural-language orchestrator.
 
 ## Architecture
 
@@ -16,7 +16,7 @@ queries_5000.csv                                │
                                         analytics.py ──► output/dashboard.html
                                                          output/results.parquet
 
-orchestrator.py ──► Claude generates queries ──► pipeline ──► Claude analyzes
+orchestrator.py ──► generates queries ──► pipeline ──► analyzes the results
                                                          output/report.md
 ```
 
@@ -164,7 +164,7 @@ product_scraper/
 ├── storage.py             # SQLite + JSONL
 ├── analytics.py           # Parquet + Plotly dashboard
 ├── bias_analysis.py       # Google Shopping bias analysis
-├── orchestrator.py        # Claude NL orchestrator
+├── orchestrator.py        # natural-language orchestrator
 ├── wizard.py              # Interactive guided pipeline (main.py wizard)
 ├── gui.py                 # Mini tkinter GUI (main.py gui)
 ├── explore.py             # Terminal-based DB exploration (main.py explore)
@@ -185,6 +185,6 @@ product_scraper/
     ├── dashboard.html       # Interactive dashboard
     ├── bias_dashboard.html  # Bias dashboard (6 charts)
     ├── bias_metrics.csv     # Per-query bias metrics
-    └── report.md            # Claude report (only with 'ask')
+    └── report.md            # generated report (only with 'ask')
 ```
 
